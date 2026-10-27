@@ -43,29 +43,29 @@ ENTRIES = """entries:
 """
 
 
-async def test_first_run_is_pinned_and_never_rewritten(tmp_path, built):
+async def test_first_run_is_pinned_and_never_rewritten(tmp_path, ctx):
     root, reports = tmp_path / "heldout", tmp_path / "reports"
     (root / "g").mkdir(parents=True)
     (root / "g" / "guidelines.md").write_text(GUIDE)
     (root / "g" / "answer_key.yaml").write_text(KEY)
-    first = await run_set("g", root=root, reports=reports)
+    first = await run_set("g", root=root, reports=reports, ctx=ctx)
     assert first["scores"]["found"] == 1 and first["scores"]["rules_from_non_rule_clauses"] == []
     pinned = (reports / "heldout" / "g" / "first_run.json").read_text()
-    await run_set("g", root=root, reports=reports)
+    await run_set("g", root=root, reports=reports, ctx=ctx)
     assert (reports / "heldout" / "g" / "first_run.json").read_text() == pinned
     assert (reports / "heldout" / "g" / "latest.json").exists()
     (root / "g" / "STATUS").write_text("regression\n")  # bookkeeping does not change the set
-    await run_set("g", root=root, reports=reports)
+    await run_set("g", root=root, reports=reports, ctx=ctx)
     (root / "g" / "answer_key.yaml").write_text(KEY.replace("0.1", "0.25"))
     with pytest.raises(SetChanged):
-        await run_set("g", root=root, reports=reports)
+        await run_set("g", root=root, reports=reports, ctx=ctx)
 
 
-async def test_entries_go_through_the_whole_review(tmp_path, built):
+async def test_entries_go_through_the_whole_review(tmp_path, ctx):
     root, reports = tmp_path / "heldout", tmp_path / "reports"
     (root / "e").mkdir(parents=True)
     (root / "e" / "entries.yaml").write_text(ENTRIES)
-    r = await run_set("e", root=root, reports=reports)
+    r = await run_set("e", root=root, reports=reports, ctx=ctx)
     assert r["entries"] == 2 and {x["id"] for x in r["rows"]} == {"e1", "e2"}
     assert json.loads((reports / "heldout" / "e" / "first_run.json").read_text())["kind"] == "entries"
     assert "vague_description" in next(x for x in r["rows"] if x["id"] == "e2")["predicted"]

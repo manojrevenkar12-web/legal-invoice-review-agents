@@ -29,6 +29,7 @@ from typing import Any
 import yaml
 
 from lira import config, ledes
+from lira.context import Context
 from lira.domain import Invoice, LineItem, LineType, money
 
 JUDGED = ("block_billing", "vague_description", "clerical_work")
@@ -56,7 +57,9 @@ def status(folder: Path) -> str:
     return s.read_text().strip() if s.exists() else "blind"
 
 
-async def run_set(name: str, force: bool = False, root: Path | None = None, reports: Path | None = None) -> dict[str, Any]:
+async def run_set(
+    name: str, force: bool = False, root: Path | None = None, reports: Path | None = None, ctx: Context | None = None
+) -> dict[str, Any]:
     folder = (root or heldout_dir()) / name
     if not folder.is_dir():
         raise FileNotFoundError(f"no held-out set {folder}")
@@ -69,9 +72,9 @@ async def run_set(name: str, force: bool = False, root: Path | None = None, repo
             raise SetChanged(f"{name}: files changed since the first run (pinned {pinned[:12]}, now {sha[:12]})")
 
     if (folder / "guidelines.md").exists():
-        result = await _run_guidelines(folder)
+        result = await _run_guidelines(folder, ctx or Context.load())
     elif (folder / "entries.yaml").exists():
-        result = await _run_entries(folder)
+        result = await _run_entries(folder, ctx or Context.load())
     else:
         raise ValueError(f"{name}: neither guidelines.md nor entries.yaml")
 
@@ -93,8 +96,7 @@ async def run_set(name: str, force: bool = False, root: Path | None = None, repo
 # ---------------------------------------------------------------- guideline sets
 
 
-async def _run_guidelines(folder: Path) -> dict[str, Any]:
-    from lira.context import Context
+async def _run_guidelines(folder: Path, ctx: Context) -> dict[str, Any]:
     from lira.eval.compile_eval import score_ruleset
     from lira.guidelines.compiler import compile_guidelines
     from lira.guidelines.documents import parse
@@ -104,7 +106,6 @@ async def _run_guidelines(folder: Path) -> dict[str, Any]:
     doc = parse(
         text, meta.get("tenant", "heldout"), int(meta.get("version", 1)), date.fromisoformat(str(meta.get("effective_from", "2026-01-01")))
     )
-    ctx = Context.load()
     report = await compile_guidelines(doc, ctx.router, meta.get("client_name", "the client"))
     answer = [{k: v for k, v in r.items() if k not in ("note", "quote")} for r in meta["rules"]]
     s = score_ruleset(report, answer)
@@ -179,13 +180,11 @@ def _pr(tp: int, fp: int, fn: int) -> dict[str, Any]:
     }
 
 
-async def _run_entries(folder: Path) -> dict[str, Any]:
+async def _run_entries(folder: Path, ctx: Context) -> dict[str, Any]:
     from lira.agents.review_graph import ReviewDeps, build_review_graph
-    from lira.context import Context
     from lira.domain import Finding
 
     entries = yaml.safe_load((folder / "entries.yaml").read_text())["entries"]
-    ctx = Context.load()
     graph = build_review_graph(ReviewDeps(ctx.ref, ctx.rules, ctx.nlp, ctx.router, ctx.index, human="skip"))
     thresholds = config.load("review")["candidates"]
     counts: dict[str, list[int]] = {q: [0, 0, 0] for q in JUDGED}  # system: tp fp fn

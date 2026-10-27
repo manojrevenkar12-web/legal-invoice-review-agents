@@ -53,7 +53,17 @@ jobs:
       - name: Prompts are locked to their regression runs
         run: .venv/bin/lira prompts check
       - name: Tests
-        run: .venv/bin/pytest -q
+        run: .venv/bin/pytest -q --junitxml=junit.xml
+      - name: Report failing tests as annotations
+        if: failure()
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          for case in ET.parse("junit.xml").iter("testcase"):
+              for bad in list(case.findall("failure")) + list(case.findall("error")):
+                  text = (bad.get("message") or bad.text or "").replace("\n", " ")[:900]
+                  print(f"::error title={case.get('classname')}.{case.get('name')}::{text}")
+          PY
 
   console:
     name: console (types, unit tests, build)
