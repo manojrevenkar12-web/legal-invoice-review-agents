@@ -1,0 +1,181 @@
+# The simulated legal-spend world. Read only by lira.sim (to generate) and lira.eval (to score).
+# The review pipeline never reads this file: it sees the guideline documents, the reference data and the
+# LEDES invoices the simulation writes to data/world, exactly as a client's e-billing system would.
+
+seed: 20261027
+first_month: 2025-11
+months: 12
+history_months: 9            # months 1-9 have past reviewer decisions (training data); months 10-12 are reviewed live
+
+tenants:
+  - id: kestrel
+    name: Kestrel Logistics AG
+    client_id: KESTREL-LGL
+    currency: EUR
+    style: numbered
+    firms: [harlow, lindqvist, okafor]
+    matters: 7
+    versions:
+      - version: 1
+        effective_from: 2025-01-01
+        params:
+          increment: 0.1
+          max_daily_hours: 10
+          travel_factor: 0.5
+          internal_conference: one_attendee
+          block_billing: {action: reduce, factor: 0.5}
+          vague: true
+          clerical: true
+          nonbillable_roles: [summer associate, law clerk]
+          nonreimbursable: [E103, E111]
+          expense_caps: {E101: 0.10}
+          submission_days: 60
+          max_attendees: {deposition: 2, hearing: 2}
+          research_cap: null
+      - version: 2               # mid-year update: travel no longer billable, research capped
+        effective_from: 2026-05-01
+        params:
+          increment: 0.1
+          max_daily_hours: 10
+          travel_factor: 0
+          internal_conference: one_attendee
+          block_billing: {action: reduce, factor: 0.5}
+          vague: true
+          clerical: true
+          nonbillable_roles: [summer associate, law clerk]
+          nonreimbursable: [E103, E111]
+          expense_caps: {E101: 0.10}
+          submission_days: 60
+          max_attendees: {deposition: 2, hearing: 2}
+          research_cap: 4
+  - id: brightwater
+    name: Brightwater Insurance Ltd
+    client_id: BWI-LEGAL
+    currency: GBP
+    style: uk
+    firms: [harlow, marchetti, ashdown]
+    matters: 7
+    versions:
+      - version: 1
+        effective_from: 2025-01-01
+        params:
+          increment: 0.1
+          max_daily_hours: 12
+          travel_factor: 0
+          internal_conference: not_billable
+          block_billing: {action: reject}
+          vague: true
+          clerical: true
+          nonbillable_roles: [trainee, summer associate]
+          nonreimbursable: [E103, E104, E105, E111]
+          expense_caps: {E101: 0.15}
+          submission_days: 90
+          max_attendees: {deposition: 1, hearing: 2}
+          research_cap: 5
+  - id: corvane
+    name: Corvane Pharmaceuticals Inc.
+    client_id: CORVANE-LAW
+    currency: USD
+    style: letters
+    firms: [okafor, marchetti, ashdown, lindqvist]
+    matters: 8
+    versions:
+      - version: 1
+        effective_from: 2025-01-01
+        params:
+          increment: 0.1
+          max_daily_hours: null      # no daily cap: long days are not a violation here
+          travel_factor: 0.5
+          internal_conference: null  # internal conferences are billable here
+          block_billing: {action: reject}
+          vague: true
+          clerical: true
+          nonbillable_roles: [first-year associate, summer associate, law clerk]
+          nonreimbursable: [E103, E111]
+          expense_caps: {E101: 0.20}
+          submission_days: 45
+          max_attendees: {deposition: 2}
+          research_cap: null
+
+# How each simulated firm writes and bills: per-line propensities of each habit.
+firms:
+  harlow:
+    name: Harlow & Pike LLP
+    style: verbose
+    block: 0.03
+    vague: 0.02
+    clerical: 0.03
+    increment_slip: 0.004
+    rate_creep: 0.0
+    internal_meetings: 0.5     # expected internal-conference pairs per invoice
+    copy_cost: 0.10
+    word_processing: 0.0
+    meals: 0.02
+    summer_months: [6, 7, 8]
+  lindqvist:
+    name: Lindqvist Partners
+    style: terse
+    drift_from: 2026-09        # switches timekeeping software: new narrative style from this month
+    block: 0.05
+    vague: 0.06
+    clerical: 0.04
+    increment_slip: 0.004
+    rate_creep: 0.0
+    internal_meetings: 0.3
+    copy_cost: 0.15
+    word_processing: 0.02
+    meals: 0.01
+  okafor:
+    name: Okafor Brandt LLP
+    style: semicolons
+    block: 0.2
+    vague: 0.04
+    clerical: 0.03
+    increment_slip: 0.004
+    rate_creep: 0.0
+    internal_meetings: 0.8
+    copy_cost: 0.10
+    word_processing: 0.0
+    meals: 0.03
+  marchetti:
+    name: Marchetti Stone
+    style: verbose
+    block: 0.06
+    vague: 0.16
+    clerical: 0.04
+    increment_slip: 0.004
+    rate_creep: 0.35           # from 2026-01 some timekeepers bill an unapproved new rate
+    internal_meetings: 0.4
+    copy_cost: 0.25
+    word_processing: 0.03
+    meals: 0.04
+  ashdown:
+    name: Ashdown Reyes LLP
+    style: abbreviated
+    block: 0.05
+    vague: 0.05
+    clerical: 0.15
+    increment_slip: 0.12       # bills quarter hours
+    rate_creep: 0.0
+    internal_meetings: 0.3
+    copy_cost: 0.12
+    word_processing: 0.01
+    meals: 0.02
+    summer_months: [6, 7, 8]
+
+# rare events, per line or per invoice
+events:
+  task_code_slip: 0.06         # firm codes the line with a wrong (sibling) task code
+  inflated_hours: 0.012        # hours far above what the task takes
+  injection: 0.004             # narrative that tries to instruct an automated reviewer
+  travel: 0.03
+  late_invoice: 0.05           # per invoice
+  unauthorized_timekeeper: 0.004
+  long_day: 0.02               # per timekeeper-day with trial or deposition work
+  extra_attendee: 0.35         # per deposition or hearing: one more lawyer attends than usual
+
+# how past reviewers labelled history (the training data is as noisy as real review decisions)
+reviewers:
+  recall: 0.78
+  reason_confusion: 0.22       # flags the right line but gives a related wrong reason
+  false_flag: 0.015

@@ -1,0 +1,37 @@
+# The release gate: `lira gate` fails CI when a report misses any of these. Changing a threshold is a reviewed
+# change to this file, never a change in code.
+
+review:
+  auto_applied_wrong_share_max: 0.0       # money taken automatically that a careful reviewer would not take
+  judgement_precision_min: 0.80           # block billing, vague, clerical, internal conference (each)
+  judgement_recall_min: 0.80
+  savings_captured_if_correct_accepted_min: 0.90
+  injection_flagged_min: 1.0
+  injection_decided_by_model_max: 0
+  reviewer_queue_lines_per_invoice_max: 8
+compile:
+  recall_min: 0.95
+  wrong_values_max: 0
+  fabricated_rules_accepted_max: 0        # under fault injection: invented clauses and quotes never become rules
+retrieval:
+  recall_at_5_min: 0.80
+  cross_tenant_hits_max: 0
+qa:
+  unsupported_answers_shown_max: 0
+  abstained_when_unanswerable_min: 0.9
+faults:                                   # model returns malformed output, invents clauses and quotes, obeys injections
+  auto_applied_wrong_share_max: 0.0
+  ungrounded_model_findings_shown_max: 0
+  injection_decided_by_model_max: 0
+outage:                                   # the model is down for the whole run
+  invoices_not_reviewed_max: 0
+  auto_applied_wrong_share_max: 0.0
+drift:
+  injected_drift_detected_min: 1.0
+appeals:
+  closed_wrongly_max: 0
+  intent_accuracy_min: 0.85
+cost:
+  model_cost_usd_per_invoice_max: 0.40
+prompts:
+  lock_clean: true

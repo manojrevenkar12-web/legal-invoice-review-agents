@@ -1,0 +1,88 @@
+{
+  "rules": [
+    {
+      "clause_id": "2.1",
+      "quote": "2.1 Timekeepers may bill only at the rates approved for them in the matter's rate schedule.",
+      "kind": "rate_cap"
+    },
+    {
+      "clause_id": "2.1(b)",
+      "quote": "(b) The Company will not be charged for work performed by first-year associates, summer associates and law clerks.",
+      "kind": "nonbillable_role",
+      "roles": [
+        "summer associate",
+        "law clerk",
+        "first-year associate"
+      ]
+    },
+    {
+      "clause_id": "2.1(d)",
+      "quote": "(d) The Company will pay for at most 2 attorneys attending any deposition.",
+      "kind": "max_attendees",
+      "event": "deposition",
+      "max_timekeepers": 2
+    },
+    {
+      "clause_id": "3.1",
+      "quote": "3.1 Time shall be billed in tenth-of-an-hour (0.1) increments.",
+      "kind": "billing_increment",
+      "hours": "0.1"
+    },
+    {
+      "clause_id": "3.1(b)",
+      "quote": "(b) Block billing is prohibited.",
+      "kind": "block_billing",
+      "action": "reject",
+      "reduce_factor": null
+    },
+    {
+      "clause_id": "3.1(c)",
+      "quote": "Vague descriptions will be rejected.",
+      "kind": "vague_description",
+      "action": "reject"
+    },
+    {
+      "clause_id": "4.1",
+      "quote": "4.1 Clerical tasks (including filing, copying, scheduling, organizing files, labeling and binder preparation) are not billable, even when performed by attorneys or paralegals.",
+      "kind": "clerical_work",
+      "action": "reject"
+    },
+    {
+      "clause_id": "5.1",
+      "quote": "5.1 Non-working travel time will be paid at 50% of the approved hourly rate.",
+      "kind": "travel_time",
+      "rate_factor": "0.5"
+    },
+    {
+      "clause_id": "6.1",
+      "quote": "6.1 The Company will not reimburse charges for word processing and meals.",
+      "kind": "nonreimbursable_expense",
+      "codes": [
+        "E103",
+        "E111"
+      ]
+    },
+    {
+      "clause_id": "6.1(b)",
+      "quote": "(b) Copying will be reimbursed at a maximum of $0.20 per page.",
+      "kind": "expense_unit_cap",
+      "code": "E101",
+      "max_unit_cost": "0.2"
+    },
+    {
+      "clause_id": "7.1(b)",
+      "quote": "(b) Invoices submitted more than 45 days after the end of the billing period will be rejected.",
+      "kind": "submission_deadline",
+      "days": 45
+    },
+    {
+      "clause_id": "7.1(c)",
+      "quote": "(c) Billing in excess of the approved budget requires prior written approval of the Law Department.",
+      "kind": "budget"
+    }
+  ],
+  "rejected": [],
+  "disagreements_with_patterns": [],
+  "changes_from_previous_version": [],
+  "model": "simulated"
+}

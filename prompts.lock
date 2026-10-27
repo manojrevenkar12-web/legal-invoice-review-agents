@@ -1,0 +1,22 @@
+{
+  "appeal_review": {
+    "version": 1,
+    "sha256": "a4e73b0476b2d91d692fd1624800f947a2cb337f0a1edbbc87c716bd182ba532"
+  },
+  "guideline_compile": {
+    "version": 1,
+    "sha256": "20bc6075664b97cda3e6c1d089c629bdeac7f6a491ae1acee8d90b2782688a32"
+  },
+  "judge_finding": {
+    "version": 1,
+    "sha256": "d0954bb4daa7f40d618227cf1a79e4aefbdb48af7922344151507b701f073f8c"
+  },
+  "line_review": {
+    "version": 1,
+    "sha256": "b046462f35e3cfcb93bb1a2d98c2b792696061840f26077c3c640ff249e91644"
+  },
+  "qa_answer": {
+    "version": 1,
+    "sha256": "e3bc6249ab901caca0e8985f19dc564626200801d9dac31a4a6cfa3d284a9283"
+  }
+}

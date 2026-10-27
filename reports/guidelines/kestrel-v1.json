@@ -1,0 +1,106 @@
+{
+  "rules": [
+    {
+      "clause_id": "2.1",
+      "quote": "2.1 Only the hourly rates approved in the rate schedule for the matter may be billed.",
+      "kind": "rate_cap"
+    },
+    {
+      "clause_id": "2.2",
+      "quote": "2.2 Time recorded by summer associates and law clerks is not billable to Kestrel Logistics AG, whatever the task.",
+      "kind": "nonbillable_role",
+      "roles": [
+        "summer associate",
+        "law clerk"
+      ]
+    },
+    {
+      "clause_id": "2.4",
+      "quote": "2.4 No more than two (2) timekeepers may bill for attending the same deposition without prior approval.",
+      "kind": "max_attendees",
+      "event": "deposition",
+      "max_timekeepers": 2
+    },
+    {
+      "clause_id": "2.5",
+      "quote": "2.5 No more than two (2) timekeepers may bill for attending the same hearing or court appearance without prior approval.",
+      "kind": "max_attendees",
+      "event": "hearing",
+      "max_timekeepers": 2
+    },
+    {
+      "clause_id": "3.1",
+      "quote": "3.1 Time must be recorded in increments of one-tenth of an hour (0.1).",
+      "kind": "billing_increment",
+      "hours": "0.1"
+    },
+    {
+      "clause_id": "3.2",
+      "quote": "Block billing (several tasks in one entry) is not permitted; block-billed entries will be reduced by 50%.",
+      "kind": "block_billing",
+      "action": "reduce",
+      "reduce_factor": "0.5"
+    },
+    {
+      "clause_id": "3.3",
+      "quote": "Vague entries such as \"attention to file\", \"work on matter\" or \"research\" without a subject will be rejected.",
+      "kind": "vague_description",
+      "action": "reject"
+    },
+    {
+      "clause_id": "3.4",
+      "quote": "3.4 A timekeeper may not bill more than 10 hours in a single day on our matters without prior written approval.",
+      "kind": "max_daily_hours",
+      "hours": "10.0"
+    },
+    {
+      "clause_id": "4.1",
+      "quote": "4.1 Administrative and clerical work is overhead and is not billable, whoever performs it.",
+      "kind": "clerical_work",
+      "action": "reject"
+    },
+    {
+      "clause_id": "4.2",
+      "quote": "4.2 Where timekeepers of the firm confer internally, only the most senior attendee may bill the time; time recorded by other attendees of the same conference is not billable.",
+      "kind": "internal_conference",
+      "policy": "one_attendee"
+    },
+    {
+      "clause_id": "5.1",
+      "quote": "5.1 Non-working travel time may be billed at 50% of the timekeeper's approved rate.",
+      "kind": "travel_time",
+      "rate_factor": "0.5"
+    },
+    {
+      "clause_id": "6.1",
+      "quote": "6.1 The following are firm overheads and will not be reimbursed: word processing and meals.",
+      "kind": "nonreimbursable_expense",
+      "codes": [
+        "E103",
+        "E111"
+      ]
+    },
+    {
+      "clause_id": "6.2",
+      "quote": "6.2 Photocopying is reimbursed at no more than EUR 0.10 per page.",
+      "kind": "expense_unit_cap",
+      "code": "E101",
+      "max_unit_cost": "0.1"
+    },
+    {
+      "clause_id": "7.2",
+      "quote": "7.2 Invoices must be submitted within 60 days of the end of the billing period.",
+      "kind": "submission_deadline",
+      "days": 60
+    },
+    {
+      "clause_id": "7.3",
+      "quote": "7.3 Fees beyond the approved matter budget require written approval from the responsible in-house lawyer before the work is performed.",
+      "kind": "budget"
+    }
+  ],
+  "rejected": [],
+  "disagreements_with_patterns": [],
+  "changes_from_previous_version": [],
+  "model": "simulated"
+}

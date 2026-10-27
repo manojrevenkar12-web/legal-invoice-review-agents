@@ -1,0 +1,69 @@
+# Model catalogue and routing. Prices are USD per million tokens (input, output) and only used to account and cap cost.
+# privacy: "in_region" means inference stays in the named AWS region group (Bedrock cross-region inference profile);
+# "vendor_api" means the request leaves AWS for the model vendor's API.
+
+models:
+  sonnet-eu:
+    provider: bedrock
+    model_id: eu.anthropic.claude-sonnet-4-5-20250929-v1:0
+    region: eu-central-1
+    region_group: eu
+    privacy: in_region
+    price_in: 3.0
+    price_out: 15.0
+  haiku-eu:
+    provider: bedrock
+    model_id: eu.anthropic.claude-haiku-4-5-20251001-v1:0
+    region: eu-central-1
+    region_group: eu
+    privacy: in_region
+    price_in: 1.0
+    price_out: 5.0
+  sonnet-us:
+    provider: bedrock
+    model_id: us.anthropic.claude-sonnet-4-5-20250929-v1:0
+    region: us-east-1
+    region_group: us
+    privacy: in_region
+    price_in: 3.0
+    price_out: 15.0
+  sonnet-direct:
+    provider: anthropic
+    model_id: claude-sonnet-4-5
+    region_group: vendor
+    privacy: vendor_api
+    price_in: 3.0
+    price_out: 15.0
+  simulated:
+    provider: simulated
+    model_id: simulated-reviewer-1
+    region_group: local
+    privacy: local
+    price_as: haiku-eu          # cost is estimated as if the calls went to Claude Haiku on Bedrock
+    price_in: 0.0
+    price_out: 0.0
+
+# Ordered fallback chains per task. The first model a tenant's data policy allows is tried first.
+tasks:
+  guideline_compile: [sonnet-eu, sonnet-us, sonnet-direct]
+  line_review: [haiku-eu, sonnet-eu, sonnet-us, sonnet-direct]
+  appeal_review: [sonnet-eu, sonnet-us, sonnet-direct]
+  qa_answer: [haiku-eu, sonnet-eu, sonnet-us, sonnet-direct]
+  judge_finding: [sonnet-eu, sonnet-us, sonnet-direct]   # the judge is a stronger model than the line reviewer
+
+# Which model groups each tenant's data may be sent to (data residency and vendor policy).
+tenant_policies:
+  kestrel: [eu]                  # German company: processing in the EU only
+  brightwater: [eu, us]
+  corvane: [us, eu, vendor]
+  default: [eu]
+
+# When LIRA_MODEL=simulated (tests, CI, the demo), every chain is replaced by the simulated model.
+routing:
+  attempts_per_model: 2
+  backoff_seconds: [0.5, 2.0]
+  timeout_seconds: 60
+  breaker_failures: 3            # consecutive failures that open a model's circuit
+  breaker_cooldown_seconds: 120
+  repair_attempts: 1             # re-ask once when the output fails validation
+  max_cost_usd_per_invoice: 0.40

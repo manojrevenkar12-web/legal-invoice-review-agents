@@ -1,0 +1,728 @@
+{
+  "generated_at": "2026-10-27",
+  "model": "simulated",
+  "live_from": "2026-08",
+  "invoices_reviewed": 60,
+  "golden": {
+    "invoices": 60,
+    "fee_lines": 1265,
+    "lines_sent_to_model": 198,
+    "share_sent_to_model": 0.1565,
+    "model_cost_usd_per_invoice": 0.00199,
+    "degraded_invoices": 0,
+    "auto_applied": {
+      "money_taken": "118651.96",
+      "money_taken_wrongly": "0.00",
+      "wrong_share": 0.0,
+      "lines_wrong": []
+    },
+    "money": {
+      "truth_savings": "463621.96",
+      "accept_all_proposals": {
+        "captured": "450200.21",
+        "captured_share": 0.9711,
+        "taken_wrongly": "3399.50"
+      },
+      "accept_correct_proposals": {
+        "captured": "446612.71",
+        "captured_share": 0.9633,
+        "taken_wrongly": "0.00"
+      }
+    },
+    "judgement": {
+      "block_billing": {
+        "tp": 51,
+        "fp": 7,
+        "fn": 3,
+        "precision": 0.8793,
+        "recall": 0.9444,
+        "f1": 0.9107,
+        "decided_by": "person"
+      },
+      "clerical_work": {
+        "tp": 48,
+        "fp": 0,
+        "fn": 6,
+        "precision": 1.0,
+        "recall": 0.8889,
+        "f1": 0.9412,
+        "decided_by": "person"
+      },
+      "internal_conference": {
+        "tp": 18,
+        "fp": 0,
+        "fn": 2,
+        "precision": 1.0,
+        "recall": 0.9,
+        "f1": 0.9474,
+        "decided_by": "person"
+      },
+      "vague_description": {
+        "tp": 42,
+        "fp": 7,
+        "fn": 4,
+        "precision": 0.8571,
+        "recall": 0.913,
+        "f1": 0.8842,
+        "decided_by": "person"
+      }
+    },
+    "kinds": {
+      "billing_increment": {
+        "tp": 9,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "decided_by": "code"
+      },
+      "block_billing": {
+        "tp": 51,
+        "fp": 7,
+        "fn": 3,
+        "precision": 0.8793,
+        "recall": 0.9444,
+        "f1": 0.9107,
+        "decided_by": "person"
+      },
+      "clerical_work": {
+        "tp": 48,
+        "fp": 0,
+        "fn": 6,
+        "precision": 1.0,
+        "recall": 0.8889,
+        "f1": 0.9412,
+        "decided_by": "person"
+      },
+      "expense_unit_cap": {
+        "tp": 13,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "decided_by": "code"
+      },
+      "internal_conference": {
+        "tp": 18,
+        "fp": 0,
+        "fn": 2,
+        "precision": 1.0,
+        "recall": 0.9,
+        "f1": 0.9474,
+        "decided_by": "person"
+      },
+      "max_attendees": {
+        "tp": 23,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "decided_by": "person"
+      },
+      "max_daily_hours": {
+        "tp": 17,
+        "fp": 5,
+        "fn": 0,
+        "precision": 0.7727,
+        "recall": 1.0,
+        "f1": 0.8718,
+        "decided_by": "code"
+      },
+      "nonbillable_role": {
+        "tp": 56,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "decided_by": "code"
+      },
+      "nonreimbursable_expense": {
+        "tp": 28,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "decided_by": "code"
+      },
+      "prompt_injection": {
+        "tp": 7,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "decided_by": "person"
+      },
+      "rate_cap": {
+        "tp": 50,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "decided_by": "code"
+      },
+      "research_cap": {
+        "tp": 3,
+        "fp": 1,
+        "fn": 0,
+        "precision": 0.75,
+        "recall": 1.0,
+        "f1": 0.8571,
+        "decided_by": "code"
+      },
+      "task_code_mismatch": {
+        "tp": 31,
+        "fp": 0,
+        "fn": 36,
+        "precision": 1.0,
+        "recall": 0.4627,
+        "f1": 0.6327,
+        "decided_by": "person"
+      },
+      "travel_time": {
+        "tp": 25,
+        "fp": 0,
+        "fn": 1,
+        "precision": 1.0,
+        "recall": 0.9615,
+        "f1": 0.9804,
+        "decided_by": "person"
+      },
+      "unauthorized": {
+        "tp": 5,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "decided_by": "code"
+      },
+      "unusual_time": {
+        "tp": 4,
+        "fp": 1,
+        "fn": 9,
+        "precision": 0.8,
+        "recall": 0.3077,
+        "f1": 0.4444,
+        "decided_by": "person"
+      },
+      "vague_description": {
+        "tp": 42,
+        "fp": 7,
+        "fn": 4,
+        "precision": 0.8571,
+        "recall": 0.913,
+        "f1": 0.8842,
+        "decided_by": "person"
+      }
+    },
+    "invoice_dispute": {
+      "tp": 60,
+      "fp": 0,
+      "fn": 0,
+      "tn": 0,
+      "accuracy": 1.0
+    },
+    "injection": {
+      "lines": 7,
+      "flagged": 7,
+      "decided_by_model": 0
+    },
+    "model_outputs": {
+      "decisions": 230,
+      "dropped_by_verifier": 0,
+      "dropped_share": 0.0
+    },
+    "reviewer_queue_lines_per_invoice": 4.3667,
+    "model_findings_shown": 174,
+    "ungrounded_model_findings_shown": 0,
+    "invoices_not_reviewed": 0,
+    "seconds_per_invoice": 0.065
+  },
+  "faults": {
+    "faults": {
+      "invalid": 0.3,
+      "hallucinate": 0.3,
+      "fabricate_quote": 0.3,
+      "obey_injection": 1.0,
+      "flip": 0.1
+    },
+    "auto_applied": {
+      "money_taken": "119483.96",
+      "money_taken_wrongly": "0.00",
+      "wrong_share": 0.0
+    },
+    "money": {
+      "truth_savings": "463621.96",
+      "accept_all_proposals": {
+        "captured": "348268.46",
+        "captured_share": 0.7512,
+        "taken_wrongly": "1179.00"
+      },
+      "accept_correct_proposals": {
+        "captured": "347089.46",
+        "captured_share": 0.7486,
+        "taken_wrongly": "0.00"
+      }
+    },
+    "judgement": {
+      "block_billing": {
+        "tp": 23,
+        "fp": 4,
+        "fn": 31,
+        "precision": 0.8519,
+        "recall": 0.4259,
+        "f1": 0.5679,
+        "decided_by": "person"
+      },
+      "clerical_work": {
+        "tp": 20,
+        "fp": 0,
+        "fn": 34,
+        "precision": 1.0,
+        "recall": 0.3704,
+        "f1": 0.5405,
+        "decided_by": "person"
+      },
+      "internal_conference": {
+        "tp": 18,
+        "fp": 0,
+        "fn": 2,
+        "precision": 1.0,
+        "recall": 0.9,
+        "f1": 0.9474,
+        "decided_by": "person"
+      },
+      "vague_description": {
+        "tp": 25,
+        "fp": 2,
+        "fn": 21,
+        "precision": 0.9259,
+        "recall": 0.5435,
+        "f1": 0.6849,
+        "decided_by": "person"
+      }
+    },
+    "injection": {
+      "lines": 7,
+      "flagged": 7,
+      "decided_by_model": 0
+    },
+    "model_outputs": {
+      "decisions": 147,
+      "dropped_by_verifier": 55,
+      "dropped_share": 0.3741
+    },
+    "degraded_invoices": 0,
+    "model_findings_shown": 58,
+    "ungrounded_model_findings_shown": 0,
+    "invoices_not_reviewed": 0,
+    "reviewer_queue_lines_per_invoice": 3.0667
+  },
+  "outage": {
+    "faults": {
+      "outage": 1.0
+    },
+    "auto_applied": {
+      "money_taken": "119483.96",
+      "money_taken_wrongly": "0.00",
+      "wrong_share": 0.0
+    },
+    "money": {
+      "truth_savings": "463621.96",
+      "accept_all_proposals": {
+        "captured": "265024.46",
+        "captured_share": 0.5716,
+        "taken_wrongly": "0.00"
+      },
+      "accept_correct_proposals": {
+        "captured": "265024.46",
+        "captured_share": 0.5716,
+        "taken_wrongly": "0.00"
+      }
+    },
+    "judgement": {
+      "block_billing": {
+        "tp": 8,
+        "fp": 0,
+        "fn": 46,
+        "precision": 1.0,
+        "recall": 0.1481,
+        "f1": 0.2581,
+        "decided_by": "person"
+      },
+      "clerical_work": {
+        "tp": 14,
+        "fp": 0,
+        "fn": 40,
+        "precision": 1.0,
+        "recall": 0.2593,
+        "f1": 0.4118,
+        "decided_by": "person"
+      },
+      "internal_conference": {
+        "tp": 18,
+        "fp": 0,
+        "fn": 2,
+        "precision": 1.0,
+        "recall": 0.9,
+        "f1": 0.9474,
+        "decided_by": "person"
+      },
+      "vague_description": {
+        "tp": 13,
+        "fp": 0,
+        "fn": 33,
+        "precision": 1.0,
+        "recall": 0.2826,
+        "f1": 0.4407,
+        "decided_by": "person"
+      }
+    },
+    "injection": {
+      "lines": 7,
+      "flagged": 7,
+      "decided_by_model": 0
+    },
+    "model_outputs": {
+      "decisions": 0,
+      "dropped_by_verifier": 0,
+      "dropped_share": null
+    },
+    "degraded_invoices": 55,
+    "model_findings_shown": 0,
+    "ungrounded_model_findings_shown": 0,
+    "invoices_not_reviewed": 0,
+    "reviewer_queue_lines_per_invoice": 2.4667
+  },
+  "compile": {
+    "documents": {
+      "brightwater@v1": {
+        "rules_expected": 16,
+        "found": 16,
+        "missed": [],
+        "extra": [],
+        "recall": 1.0,
+        "precision": 1.0,
+        "wrong_values": [],
+        "wrong_clauses": [],
+        "exact": 16,
+        "rejected_by_verifier": 0,
+        "disagreements_with_patterns": 0,
+        "rejected": []
+      },
+      "corvane@v1": {
+        "rules_expected": 12,
+        "found": 12,
+        "missed": [],
+        "extra": [],
+        "recall": 1.0,
+        "precision": 1.0,
+        "wrong_values": [],
+        "wrong_clauses": [],
+        "exact": 12,
+        "rejected_by_verifier": 0,
+        "disagreements_with_patterns": 0,
+        "rejected": []
+      },
+      "kestrel@v1": {
+        "rules_expected": 15,
+        "found": 15,
+        "missed": [],
+        "extra": [],
+        "recall": 1.0,
+        "precision": 1.0,
+        "wrong_values": [],
+        "wrong_clauses": [],
+        "exact": 15,
+        "rejected_by_verifier": 0,
+        "disagreements_with_patterns": 0,
+        "rejected": []
+      },
+      "kestrel@v2": {
+        "rules_expected": 16,
+        "found": 16,
+        "missed": [],
+        "extra": [],
+        "recall": 1.0,
+        "precision": 1.0,
+        "wrong_values": [],
+        "wrong_clauses": [],
+        "exact": 16,
+        "rejected_by_verifier": 0,
+        "disagreements_with_patterns": 0,
+        "rejected": []
+      }
+    },
+    "totals": {
+      "expected": 59,
+      "found": 59,
+      "extra": 0,
+      "wrong_values": 0,
+      "rejected_by_verifier": 0,
+      "recall": 1.0
+    }
+  },
+  "compile_faults": {
+    "rejected_by_verifier": 4,
+    "fabricated_rules_accepted": 0
+  },
+  "retrieval": {
+    "questions": 67,
+    "recall@1": 0.7463,
+    "recall@3": 0.8358,
+    "recall@5": 0.8657,
+    "mrr": 0.792,
+    "cross_tenant_hits": 0
+  },
+  "qa": {
+    "questions": 59,
+    "answered_with_right_clause": 0.7,
+    "correct_value": 0.74,
+    "abstained_when_unanswerable": 1.0,
+    "unsupported_answers_shown": 0,
+    "blocked_by_citation_check": 0,
+    "latency_ms_p50": 6.6,
+    "latency_ms_p95": 7.6,
+    "failures": [
+      {
+        "tenant": "kestrel",
+        "kind": "max_attendees",
+        "question": "How many lawyers can bill for attending the same deposition?",
+        "answerable": true,
+        "answered": true,
+        "cited_right_clause": false,
+        "value_in_answer": true,
+        "verified": true,
+        "problems": [],
+        "latency_ms": 7.365693000338069
+      },
+      {
+        "tenant": "kestrel",
+        "kind": "billing_increment",
+        "question": "Can we bill in quarter hours?",
+        "answerable": true,
+        "answered": true,
+        "cited_right_clause": false,
+        "value_in_answer": false,
+        "verified": true,
+        "problems": [],
+        "latency_ms": 6.915500000104657
+      },
+      {
+        "tenant": "kestrel",
+        "kind": "internal_conference",
+        "question": "Can two of our associates both bill for an internal strategy meeting?",
+        "answerable": true,
+        "answered": false,
+        "cited_right_clause": false,
+        "value_in_answer": false,
+        "verified": true,
+        "problems": [],
+        "latency_ms": 6.2025490001360595
+      },
+      {
+        "tenant": "kestrel",
+        "kind": "travel_time",
+        "question": "Will the client pay for time spent travelling to a deposition?",
+        "answerable": true,
+        "answered": true,
+        "cited_right_clause": false,
+        "value_in_answer": false,
+        "verified": true,
+        "problems": [],
+        "latency_ms": 5.788326000129018
+      },
+      {
+        "tenant": "kestrel",
+        "kind": "submission_deadline",
+        "question": "How long after the end of the month do we have to submit an invoice?",
+        "answerable": true,
+        "answered": true,
+        "cited_right_clause": false,
+        "value_in_answer": false,
+        "verified": true,
+        "problems": [],
+        "latency_ms": 6.070830000226124
+      },
+      {
+        "tenant": "brightwater",
+        "kind": "max_attendees",
+        "question": "How many lawyers can bill for attending the same deposition?",
+        "answerable": true,
+        "answered": true,
+        "cited_right_clause": false,
+        "value_in_answer": true,
+        "verified": true,
+        "problems": [],
+        "latency_ms": 5.621976999918843
+      },
+      {
+        "tenant": "brightwater",
+        "kind": "billing_increment",
+        "question": "Can we bill in quarter hours?",
+        "answerable": true,
+        "answered": true,
+        "cited_right_clause": false,
+        "value_in_answer": false,
+        "verified": true,
+        "problems": [],
+        "latency_ms": 5.683297000359744
+      },
+      {
+        "tenant": "brightwater",
+        "kind": "vague_description",
+        "question": "Will an entry that just says 'attention to file' be paid?",
+        "answerable": true,
+        "answered": true,
+        "cited_right_clause": false,
+        "value_in_answer": true,
+        "verified": true,
+        "problems": [],
+        "latency_ms": 6.18776400006027
+      },
+      {
+        "tenant": "brightwater",
+        "kind": "internal_conference",
+        "question": "Can two of our associates both bill for an internal strategy meeting?",
+        "answerable": true,
+        "answered": false,
+        "cited_right_clause": false,
+        "value_in_answer": false,
+        "verified": true,
+        "problems": [],
+        "latency_ms": 7.21855499978119
+      },
+      {
+        "tenant": "brightwater",
+        "kind": "travel_time",
+        "question": "Will the client pay for time spent travelling to a deposition?",
+        "answerable": true,
+        "answered": true,
+        "cited_right_clause": false,
+        "value_in_answer": false,
+        "verified": true,
+        "problems": [],
+        "latency_ms": 7.574178000140819
+      }
+    ]
+  },
+  "drift": {
+    "injected": [
+      [
+        "lindqvist",
+        "2026-09"
+      ],
+      [
+        "lindqvist",
+        "2026-10"
+      ]
+    ],
+    "alerts": [
+      [
+        "lindqvist",
+        "2026-09"
+      ],
+      [
+        "lindqvist",
+        "2026-10"
+      ],
+      [
+        "okafor",
+        "2026-10"
+      ]
+    ],
+    "injected_drift_detected": 1.0,
+    "other_alerts": [
+      {
+        "firm": "okafor",
+        "month": "2026-10",
+        "lines": 44,
+        "psi": {
+          "oov": 1.701,
+          "task_code_confidence": 0.5133,
+          "activity_code": 1.0182
+        },
+        "max_alerting_psi": 1.701,
+        "oov_rate": 0.1336,
+        "reference_oov_rate": 0.0109,
+        "alert": true,
+        "drivers": [
+          "oov",
+          "oov_rate"
+        ]
+      }
+    ],
+    "windows": 15,
+    "quality_by_firm": {
+      "lindqvist": {
+        "before": {
+          "found": 3,
+          "lines": 5,
+          "recall": 0.6
+        },
+        "after": {
+          "found": 17,
+          "lines": 18,
+          "recall": 0.9444
+        }
+      }
+    }
+  },
+  "appeals": {
+    "appeals": 120,
+    "intent_accuracy": 1.0,
+    "closed_without_model": 39,
+    "closed_wrongly": 0,
+    "assessed_by_model": 81,
+    "recommendation_accuracy": 0.9383,
+    "reverse_precision": 0.8,
+    "justified_appeals": 8,
+    "justified_recommended_reverse": 4,
+    "blocked_by_verification": 0
+  },
+  "judge": {
+    "items": 60,
+    "length_padding_flips": 0,
+    "judged": 59,
+    "annotations": false,
+    "agreement": null,
+    "judge_vs_answer_key": {
+      "items": 60,
+      "correct_criterion_matches_answer_key": 0.75
+    }
+  },
+  "cost": {
+    "model_cost_usd_per_invoice": 0.00199,
+    "note": "simulated model: token counts are estimated and priced at the configured Bedrock rates"
+  },
+  "prompts": {
+    "appeal_review": {
+      "version": 1,
+      "sha256": "a4e73b0476b2d91d"
+    },
+    "guideline_compile": {
+      "version": 1,
+      "sha256": "20bc6075664b97cd"
+    },
+    "judge_finding": {
+      "version": 1,
+      "sha256": "d0954bb4daa7f40d"
+    },
+    "line_review": {
+      "version": 1,
+      "sha256": "b046462f35e3cfcb"
+    },
+    "qa_answer": {
+      "version": 1,
+      "sha256": "e3bc6249ab901cac"
+    }
+  },
+  "seconds": 17.0
+}

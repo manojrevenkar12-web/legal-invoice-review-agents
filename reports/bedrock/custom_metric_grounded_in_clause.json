@@ -1,0 +1,26 @@
+{
+  "customMetricDefinition": {
+    "name": "grounded_in_clause",
+    "instructions": "You are grading an automated legal invoice reviewer. The prompt contains a billing-guideline clause and a time entry; the response is the reviewer's finding and explanation.\n\nPrompt: {{prompt}}\nResponse: {{prediction}}\nReference: {{ground_truth}}\n\nDoes the cited clause state the rule the finding applies, and would a careful reviewer applying that clause reach the same decision about this entry?",
+    "ratingScale": [
+      {
+        "definition": "Grounded and correct",
+        "value": {
+          "floatValue": 1
+        }
+      },
+      {
+        "definition": "Grounded but the decision is debatable",
+        "value": {
+          "floatValue": 0.5
+        }
+      },
+      {
+        "definition": "Not grounded in the clause, or wrong",
+        "value": {
+          "floatValue": 0
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "rules": [
+    {
+      "clause_id": "2.1",
+      "quote": "\u00a7 2.1 Fees must be charged at the hourly rates agreed for each fee earner on the matter.",
+      "kind": "rate_cap"
+    },
+    {
+      "clause_id": "2.2",
+      "quote": "\u00a7 2.2 We will not pay for time spent by trainees and summer associates.",
+      "kind": "nonbillable_role",
+      "roles": [
+        "summer associate",
+        "trainee"
+      ]
+    },
+    {
+      "clause_id": "2.4",
+      "quote": "\u00a7 2.4 Attendance at a deposition is limited to one fee earner; time of additional attendees will not be paid.",
+      "kind": "max_attendees",
+      "event": "deposition",
+      "max_timekeepers": 1
+    },
+    {
+      "clause_id": "2.5",
+      "quote": "\u00a7 2.5 Attendance at a hearing or court appearance is limited to two fee earners; time of additional attendees will not be paid.",
+      "kind": "max_attendees",
+      "event": "hearing",
+      "max_timekeepers": 2
+    },
+    {
+      "clause_id": "3.1",
+      "quote": "\u00a7 3.1 All time must be recorded in units of six minutes (0.1 hour); we do not accept minimum charges for letters, emails or calls.",
+      "kind": "billing_increment",
+      "hours": "0.1"
+    },
+    {
+      "clause_id": "3.2",
+      "quote": "\u00a7 3.2 Block billing is not acceptable, and entries combining several tasks will not be paid.",
+      "kind": "block_billing",
+      "action": "reject",
+      "reduce_factor": null
+    },
+    {
+      "clause_id": "3.3",
+      "quote": "Generic descriptions (for example \"review documents\" or \"work on matter\") will not be paid.",
+      "kind": "vague_description",
+      "action": "reject"
+    },
+    {
+      "clause_id": "3.4",
+      "quote": "\u00a7 3.4 We will not pay for more than 12 hours charged by one fee earner on any one day.",
+      "kind": "max_daily_hours",
+      "hours": "12.0"
+    },
+    {
+      "clause_id": "4.1",
+      "quote": "\u00a7 4.1 Secretarial and administrative tasks, such as photocopying, filing, diary management, scheduling and arranging couriers, are part of your overheads and must not be charged.",
+      "kind": "clerical_work",
+      "action": "reject"
+    },
+    {
+      "clause_id": "4.2",
+      "quote": "\u00a7 4.2 Internal meetings and discussions between fee earners of your firm will not be paid.",
+      "kind": "internal_conference",
+      "policy": "not_billable"
+    },
+    {
+      "clause_id": "4.3",
+      "quote": "\u00a7 4.3 Research of more than 5 hours on a matter in a month must be approved in advance; unapproved research above 5 hours will not be paid.",
+      "kind": "research_cap",
+      "hours_per_month": "5.0"
+    },
+    {
+      "clause_id": "5.1",
+      "quote": "\u00a7 5.1 Travel time will not be paid.",
+      "kind": "travel_time",
+      "rate_factor": "0.0"
+    },
+    {
+      "clause_id": "6.1",
+      "quote": "\u00a7 6.1 We will not reimburse word processing, facsimile, telephone and meals.",
+      "kind": "nonreimbursable_expense",
+      "codes": [
+        "E103",
+        "E104",
+        "E105",
+        "E111"
+      ]
+    },
+    {
+      "clause_id": "6.2",
+      "quote": "\u00a7 6.2 Copying charges must not exceed \u00a30.15 per page.",
+      "kind": "expense_unit_cap",
+      "code": "E101",
+      "max_unit_cost": "0.15"
+    },
+    {
+      "clause_id": "7.2",
+      "quote": "\u00a7 7.2 Invoices received more than 90 days after the end of the month in which the work was done will not be paid.",
+      "kind": "submission_deadline",
+      "days": 90
+    },
+    {
+      "clause_id": "7.3",
+      "quote": "\u00a7 7.3 Fees in excess of the agreed budget will not be paid unless we approved the increase before the work was done.",
+      "kind": "budget"
+    }
+  ],
+  "rejected": [],
+  "disagreements_with_patterns": [],
+  "changes_from_previous_version": [],
+  "model": "simulated"
+}

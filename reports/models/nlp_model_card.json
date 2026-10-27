@@ -1,0 +1,45 @@
+{
+  "version": "nlp-d787b57216cc",
+  "trained_on_rows": 2830,
+  "validated_on_rows": 873,
+  "validation_from": "2026-06-01",
+  "labels": "past reviewer decisions (noisy)",
+  "metrics": {
+    "block_billing": {
+      "auc_vs_reviewer_labels": 0.9059,
+      "ap_vs_reviewer_labels": 0.4665,
+      "positives": 44,
+      "n": 873
+    },
+    "vague_description": {
+      "auc_vs_reviewer_labels": 0.8928,
+      "ap_vs_reviewer_labels": 0.5162,
+      "positives": 44,
+      "n": 873
+    },
+    "clerical_work": {
+      "auc_vs_reviewer_labels": 0.9119,
+      "ap_vs_reviewer_labels": 0.4762,
+      "positives": 38,
+      "n": 873
+    },
+    "task_code": {
+      "accuracy_vs_firm_codes": 0.7159,
+      "macro_f1": 0.5303
+    },
+    "topics": [
+      "check record cite citations verify",
+      "documents log entries privilege prepare",
+      "motion draft opposition dismiss injunction",
+      "management case judge attend conference",
+      "deposition transcript summarize dahl henrik",
+      "session mediation attend mediator panel",
+      "review relevant document identify data",
+      "summary judgment revise reply support",
+      "statement quantum addressing liability draft",
+      "conference regarding telephone expert model",
+      "analyze settlement offer recommendation prepare",
+      "litigation confirm scope hold custodians"
+    ]
+  }
+}

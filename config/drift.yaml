@@ -1,0 +1,17 @@
+# Drift monitoring: each law firm's narratives this month against the same firm's reference window.
+# The reference window is out-of-sample (months after the classifiers' training cut-off), otherwise in-sample
+# confidence would make every new month look drifted. PSI: < 0.1 stable, 0.1-0.25 moderate, > 0.25 significant.
+min_lines: 25                 # fewer lines than this in a month: report, but do not alert
+psi_bins: 5
+alert:
+  psi: 0.25                   # an alerting feature above this raises an alert for the firm-month...
+  p_value: 0.001              # ...if the shift is also statistically significant (KS / chi-square; small months are noisy)
+  oov_rate_increase: 0.05     # share of words the models never saw, above the reference share
+# Features that describe how a firm writes. These alert.
+alert_features: [upper_share, words, task_segments, oov]
+# Features that move with the work itself (matters move from pleadings to discovery to trial). Reported, never alerted.
+report_features: [task_code_confidence, p_block_billing, p_vague_description, p_clerical_work, topic, activity_code]
+# Fixed bins where quantile bins would collapse (a reference that is almost constant)
+fixed_bins:
+  upper_share: [0.0, 0.05, 0.1, 0.2, 0.4, 0.7, 1.0]
+  oov: [0.0, 0.02, 0.05, 0.1, 0.2, 0.4, 1.0]

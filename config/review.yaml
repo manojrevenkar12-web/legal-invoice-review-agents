@@ -1,0 +1,47 @@
+# How the review decides. Code applies a rule on its own only when the facts it needs are records
+# (rates, timekeeper titles, codes, hours). When the facts come from reading text (is this travel? which
+# deposition? is this one task?) a person decides, with the evidence in front of them.
+
+auto_apply: [rate_cap, billing_increment, max_daily_hours, nonbillable_role, nonreimbursable_expense,
+             expense_unit_cap, research_cap, unauthorized]
+
+# Lines worth a model's reading. Classical NLP scores every line; only lines where a judgement question is
+# plausible go to the model (cost control) - the rest are decided as compliant without a model call.
+candidates:
+  block_billing: 0.25          # probability from the block-billing classifier
+  vague_description: 0.25
+  clerical_work: 0.25
+  internal_conference: true    # every A105 line or line naming a colleague at the firm
+batch_size: 12                 # entries per model call
+max_agent_steps: 3             # line reviewer: tool calls before it must record findings
+
+# Where the classical model and the language model agree with high confidence, the finding is proposed with
+# that confidence; when they disagree, it is proposed as "unsure" and ranked lower. Nothing judgemental is
+# auto-applied in any case.
+agreement_confidence: 0.9
+disagreement_confidence: 0.5
+
+# Severity ranks the reviewer's queue: money at stake times confidence times weight.
+severity_weights:
+  prompt_injection: 3.0
+  internal_conference: 1.0
+  block_billing: 1.0
+  vague_description: 1.0
+  clerical_work: 1.0
+  travel_time: 1.0
+  max_attendees: 1.0
+  unusual_time: 0.6
+  task_code_mismatch: 0.2
+  submission_deadline: 1.0
+  budget: 1.0
+
+# Signals without a rule behind them
+unusual_time:
+  robust_z: 4.0                # hours far above what this task usually takes at this firm level
+  min_hours: 3.0
+task_code:
+  min_confidence: 0.85         # classifier confidence needed to flag a different task code
+
+# Invoice recommendation
+recommend_dispute_if_adjusted_over: 0.0   # any adjustment means the invoice goes back with adjustments
+classifier_override: 0.85        # classifier probability that still proposes a finding the model judged compliant
