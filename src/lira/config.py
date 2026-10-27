@@ -56,5 +56,5 @@ def _merge(base: dict[str, Any], extra: dict[str, Any]) -> None:
 
 
 def model_mode() -> str:
-    """"simulated" (default: tests, CI, demo) or "live" (Bedrock / Anthropic with credentials)."""
+    """ "simulated" (default: tests, CI, demo) or "live" (Bedrock / Anthropic with credentials)."""
     return os.environ.get("LIRA_MODEL", "simulated")

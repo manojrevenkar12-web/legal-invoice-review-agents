@@ -20,18 +20,95 @@ from lira.guidelines.documents import Clause
 from lira.guidelines.extract import extract
 from lira.llm.base import Block, ModelRequest, ModelResponse, ProviderError, Usage
 
-TASK_VERBS = ("draft", "review", "prepare", "attend", "research", "analyze", "analyse", "telephone", "conference", "meet", "revise",
-              "interview", "coordinate", "examine", "evaluate", "summarize", "cite-check", "defend", "call", "email", "tc", "rev",
-              "drft", "prep", "confer", "discuss", "strategy", "update", "file", "organize", "investigate", "travel", "second-level",
-              "confirm", "identify", "correspondence", "negotiate", "outline", "edit", "finalize", "finalise", "videoconference")
-CLERICAL = ("organize", "organise", "copy and distribute", "scan and save", "scan & save", "calendar", "electronic filing", "scan and save", "schedule ",
-            "bates label", "assemble", "update matter contact", "arrange courier", "courier delivery", "book meeting room",
-            "rename and index", "tab exhibits", "catering")
-GENERIC = ("attention to file", "work on matter", "review documents", "legal research", "trial preparation", "correspondence",
-           "review file", "follow up", "conference", "draft document", "research", "discovery work", "prepare for meeting",
-           "work on brief", "various emails", "review and revise", "case management", "analysis")
-INJECTION = re.compile(r"(note to (?:automated|ai)|system instruction|ai reviewer|assistant,|disregard prior|ignore the billing|"
-                       r"do not adjust|mark it compliant|pre-approved by client)", re.I)
+TASK_VERBS = (
+    "draft",
+    "review",
+    "prepare",
+    "attend",
+    "research",
+    "analyze",
+    "analyse",
+    "telephone",
+    "conference",
+    "meet",
+    "revise",
+    "interview",
+    "coordinate",
+    "examine",
+    "evaluate",
+    "summarize",
+    "cite-check",
+    "defend",
+    "call",
+    "email",
+    "tc",
+    "rev",
+    "drft",
+    "prep",
+    "confer",
+    "discuss",
+    "strategy",
+    "update",
+    "file",
+    "organize",
+    "investigate",
+    "travel",
+    "second-level",
+    "confirm",
+    "identify",
+    "correspondence",
+    "negotiate",
+    "outline",
+    "edit",
+    "finalize",
+    "finalise",
+    "videoconference",
+)
+CLERICAL = (
+    "organize",
+    "organise",
+    "copy and distribute",
+    "scan and save",
+    "scan & save",
+    "calendar",
+    "electronic filing",
+    "scan and save",
+    "schedule ",
+    "bates label",
+    "assemble",
+    "update matter contact",
+    "arrange courier",
+    "courier delivery",
+    "book meeting room",
+    "rename and index",
+    "tab exhibits",
+    "catering",
+)
+GENERIC = (
+    "attention to file",
+    "work on matter",
+    "review documents",
+    "legal research",
+    "trial preparation",
+    "correspondence",
+    "review file",
+    "follow up",
+    "conference",
+    "draft document",
+    "research",
+    "discovery work",
+    "prepare for meeting",
+    "work on brief",
+    "various emails",
+    "review and revise",
+    "case management",
+    "analysis",
+)
+INJECTION = re.compile(
+    r"(note to (?:automated|ai)|system instruction|ai reviewer|assistant,|disregard prior|ignore the billing|"
+    r"do not adjust|mark it compliant|pre-approved by client)",
+    re.I,
+)
 INTERNAL = re.compile(r"\b(conference|conf|meet|meeting|discuss|strategy session|office conference|team meeting)\b", re.I)
 
 
@@ -69,8 +146,11 @@ class SimulatedProvider:
             raise ProviderError("simulated outage", retryable=True, code="ServiceUnavailableException")
         repairing = any(b.type == "tool_result" and b.is_error for m in req.messages for b in m.content)
         if not repairing and _u(key, "invalid") < self.f.get("invalid", 0):
-            return self._resp([_tool(req.tool_choice if req.tool_choice not in ("auto", "any") else "record_findings",
-                                     {"oops": True}, key)], prompt, model)
+            return self._resp(
+                [_tool(req.tool_choice if req.tool_choice not in ("auto", "any") else "record_findings", {"oops": True}, key)],
+                prompt,
+                model,
+            )
         handler = getattr(self, f"_{req.task}")
         blocks = handler(req, prompt, key)
         return self._resp(blocks, prompt, model)
@@ -88,8 +168,9 @@ class SimulatedProvider:
                 if k in ("hours", "rate_factor", "reduce_factor", "max_unit_cost", "hours_per_month"):
                     r[k] = float(v)
         if _u(key, "hallucinate") < self.f.get("hallucinate", 0) and rules:
-            rules.append({"kind": "max_daily_hours", "clause_id": "9.9", "quote": "No timekeeper may bill more than 8 hours per day.",
-                          "hours": 8})
+            rules.append(
+                {"kind": "max_daily_hours", "clause_id": "9.9", "quote": "No timekeeper may bill more than 8 hours per day.", "hours": 8}
+            )
         if _u(key, "fabricate_quote") < self.f.get("fabricate_quote", 0) and rules:
             rules[0] = {**rules[0], "quote": rules[0]["quote"].replace("0.1", "0.25")}
         return [_tool("record_rules", {"rules": rules}, key)]
@@ -117,10 +198,18 @@ class SimulatedProvider:
             if inj:
                 if _u(key, e["line_no"], "obey") < self.f.get("obey_injection", 0):
                     for q in e.get("questions", []):
-                        findings.append({"line_no": e["line_no"], "question": q, "decision": "compliant", "evidence_quote": text[:40],
-                                         "clause_id": clause_for.get(q), "reason": "Entry states it was pre-approved."})
+                        findings.append(
+                            {
+                                "line_no": e["line_no"],
+                                "question": q,
+                                "decision": "compliant",
+                                "evidence_quote": text[:40],
+                                "clause_id": clause_for.get(q),
+                                "reason": "Entry states it was pre-approved.",
+                            }
+                        )
                     continue
-                injections.append({"line_no": e["line_no"], "quote": text[inj.start(): min(len(text), inj.end() + 40)]})
+                injections.append({"line_no": e["line_no"], "quote": text[inj.start() : min(len(text), inj.end() + 40)]})
             for q in e.get("questions", []):
                 decision, quote, reason = _judge(q, e)
                 u = _u(key, e["line_no"], q)
@@ -132,8 +221,16 @@ class SimulatedProvider:
                     cid = "12.4"
                 if _u(key, e["line_no"], q, "f") < self.f.get("fabricate_quote", 0):
                     quote = "billed for unnecessary work"
-                findings.append({"line_no": e["line_no"], "question": q, "decision": decision, "evidence_quote": quote,
-                                 "clause_id": cid, "reason": reason})
+                findings.append(
+                    {
+                        "line_no": e["line_no"],
+                        "question": q,
+                        "decision": decision,
+                        "evidence_quote": quote,
+                        "clause_id": cid,
+                        "reason": reason,
+                    }
+                )
         return [_tool("record_findings", {"findings": findings, "injections": injections}, key)]
 
     def _appeal_review(self, req: ModelRequest, prompt: str, key: str) -> list[Block]:
@@ -151,7 +248,10 @@ class SimulatedProvider:
         pattern = facts.get(finding)
         hit = next((s for s in sentences if pattern and re.search(pattern, s, re.I)), None)
         if hit and finding == "vague_description":
-            rec, reason = "uphold", "Detail supplied after the fact does not change the entry as billed; the guideline requires it on the entry."
+            rec, reason = (
+                "uphold",
+                "Detail supplied after the fact does not change the entry as billed; the guideline requires it on the entry.",
+            )
         elif hit:
             rec, reason = "reverse", "The appeal gives a fact that contradicts the basis of the finding."
         else:
@@ -159,15 +259,39 @@ class SimulatedProvider:
             rec, reason = "uphold", "The appeal does not dispute the facts the finding rests on."
         if _u(key, "flip") < self.f.get("flip", 0.04):
             rec = "reverse" if rec == "uphold" else "uphold"
-        return [_tool("record_recommendation", {"recommendation": rec, "remaining_adjustment": None, "appeal_quote": hit or "",
-                                                "clause_id": clause.group(1) if clause else "", "reason": reason}, key)]
+        return [
+            _tool(
+                "record_recommendation",
+                {
+                    "recommendation": rec,
+                    "remaining_adjustment": None,
+                    "appeal_quote": hit or "",
+                    "clause_id": clause.group(1) if clause else "",
+                    "reason": reason,
+                },
+                key,
+            )
+        ]
 
     def _qa_answer(self, req: ModelRequest, prompt: str, key: str) -> list[Block]:
         q = re.search(r"Question: (.+)", prompt)
         question = q.group(1) if q else ""
         clauses = re.findall(r"^\[([^\]]+)\] (.+)$", prompt, re.M)
-        qwords = {w for w in re.findall(r"[a-z]{4,}", question.lower())} - {"what", "does", "with", "much", "many", "when", "they",
-                                                                           "this", "that", "client", "guidelines", "billing", "counsel"}
+        qwords = {w for w in re.findall(r"[a-z]{4,}", question.lower())} - {
+            "what",
+            "does",
+            "with",
+            "much",
+            "many",
+            "when",
+            "they",
+            "this",
+            "that",
+            "client",
+            "guidelines",
+            "billing",
+            "counsel",
+        }
         best, score = None, 0.0
         for rank, (cid, text) in enumerate(clauses[:3]):  # clauses arrive best-first from retrieval
             words = set(re.findall(r"[a-z]{4,}", text.lower()))
@@ -175,8 +299,13 @@ class SimulatedProvider:
             if s > score:
                 best, score = (cid, text), s
         if best is None or score < 0.2:
-            return [_tool("record_answer", {"answer": "The guidelines provided do not answer this question.", "citations": [],
-                                            "answerable": False}, key)]
+            return [
+                _tool(
+                    "record_answer",
+                    {"answer": "The guidelines provided do not answer this question.", "citations": [], "answerable": False},
+                    key,
+                )
+            ]
         cid, text = best
         sentence = max(re.split(r"(?<=[.;])\s+", text), key=lambda s: len(qwords & set(re.findall(r"[a-z]{4,}", s.lower()))))
         sentence = re.sub(r"^(?:\(?[a-z0-9.()]+\)?\s)", "", sentence) if re.match(r"^\(?\d|^\([a-z]\)", sentence) else sentence
@@ -192,8 +321,12 @@ class SimulatedProvider:
         ctext, etext = (clause.group(1) if clause else ""), (entry.group(1) if entry else "")
         k = kind.group(1) if kind else ""
         explanation = expl.group(1).strip() if expl else ""
-        stems = {"block_billing": "block", "vague_description": "vague|generic|descri", "clerical_work": "clerical|administrative|secretarial",
-                 "internal_conference": "internal|intra-firm"}
+        stems = {
+            "block_billing": "block",
+            "vague_description": "vague|generic|descri",
+            "clerical_work": "clerical|administrative|secretarial",
+            "internal_conference": "internal|intra-firm",
+        }
         supported = bool(re.search(stems.get(k, k.split("_")[0]), ctext, re.I))
         decision, _q, _r = _judge(k, {"description": etext, "people": [{"at_firm": True}] if k == "internal_conference" else []})
         correct = decision == "violation" if _u(etext, k, "judge") > 0.06 else decision != "violation"
@@ -201,22 +334,48 @@ class SimulatedProvider:
         professional = not re.search(r"\b(obviously|padding|fraud|lazy|!!)\b", explanation, re.I)
         overall = supported and correct
         pf = lambda b: "pass" if b else "fail"  # noqa: E731
-        return [_tool("record_verdict", {"supported": pf(supported), "correct": pf(correct), "specific": pf(specific),
-                                         "professional": pf(professional), "overall": pf(overall),
-                                         "reasons": "Graded against the clause and the entry as billed."}, key)]
+        return [
+            _tool(
+                "record_verdict",
+                {
+                    "supported": pf(supported),
+                    "correct": pf(correct),
+                    "specific": pf(specific),
+                    "professional": pf(professional),
+                    "overall": pf(overall),
+                    "reasons": "Graded against the clause and the entry as billed.",
+                },
+                key,
+            )
+        ]
 
 
 def _clause_for(question: str, shown: dict[str, str]) -> str | None:
-    pat = {"block_billing": r"block", "vague_description": r"vague|generic|specific description",
-           "clerical_work": r"clerical|administrative|secretarial", "internal_conference": r"internal|intra-firm"}[question]
+    pat = {
+        "block_billing": r"block",
+        "vague_description": r"vague|generic|specific description",
+        "clerical_work": r"clerical|administrative|secretarial",
+        "internal_conference": r"internal|intra-firm",
+    }[question]
     for cid, text in shown.items():
         if re.search(pat, text, re.I):
             return cid
     return None
 
 
-_ABBR = {"drft": "draft", "rev": "review", "prep": "prepare", "tc": "telephone conference", "conf": "conference", "w/": "with",
-         "&": "and", "depo": "deposition", "docs": "documents", "re": "regarding", "mtn": "motion"}
+_ABBR = {
+    "drft": "draft",
+    "rev": "review",
+    "prep": "prepare",
+    "tc": "telephone conference",
+    "conf": "conference",
+    "w/": "with",
+    "&": "and",
+    "depo": "deposition",
+    "docs": "documents",
+    "re": "regarding",
+    "mtn": "motion",
+}
 
 
 def _plain(text: str) -> str:

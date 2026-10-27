@@ -10,18 +10,108 @@ from __future__ import annotations
 import re
 
 ABBREVIATIONS: dict[str, str] = {
-    "tc": "telephone conference", "tel": "telephone", "w/": "with", "re": "regarding", "re:": "regarding", "depo": "deposition",
-    "depos": "depositions", "rev": "review", "rev/analyze": "review and analyze", "drft": "draft", "prep": "prepare",
-    "rogs": "interrogatories", "rfps": "requests for production", "sj": "summary judgment", "conf": "conference", "mtn": "motion",
-    "atty": "attorney", "docs": "documents", "memo": "memorandum", "&": "and", "oc": "opposing counsel", "corr": "correspondence",
-    "anal": "analysis", "mtg": "meeting", "emails": "emails", "msj": "motion for summary judgment", "tel.": "telephone",
+    "tc": "telephone conference",
+    "tel": "telephone",
+    "w/": "with",
+    "re": "regarding",
+    "re:": "regarding",
+    "depo": "deposition",
+    "depos": "depositions",
+    "rev": "review",
+    "rev/analyze": "review and analyze",
+    "drft": "draft",
+    "prep": "prepare",
+    "rogs": "interrogatories",
+    "rfps": "requests for production",
+    "sj": "summary judgment",
+    "conf": "conference",
+    "mtn": "motion",
+    "atty": "attorney",
+    "docs": "documents",
+    "memo": "memorandum",
+    "&": "and",
+    "oc": "opposing counsel",
+    "corr": "correspondence",
+    "anal": "analysis",
+    "mtg": "meeting",
+    "emails": "emails",
+    "msj": "motion for summary judgment",
+    "tel.": "telephone",
 }
 _DANGLING = frozenset({"for", "to", "with", "on", "in", "of", "and", "regarding", "re", "the", "a"})
 _CODE_PREFIX = re.compile(r"^\s*[LAE]\d{3}(?:/[LAE]\d{3})?\s*[-:]?\s*", re.I)
 _TOKEN = re.compile(r"[A-Za-z][A-Za-z'./&-]*|\d+(?:\.\d+)?|&")
 
 TASK_VERBS = frozenset(
-    ["draft", "review", "prepare", "attend", "research", "analyze", "analyse", "revise", "interview", "coordinate", "examine", "evaluate", "summarize", "summarise", "cite-check", "defend", "call", "email", "telephone", "confer", "conference", "meet", "discuss", "strategize", "update", "file", "organize", "organise", "investigate", "travel", "confirm", "identify", "negotiate", "outline", "edit", "finalize", "finalise", "correspond", "calendar", "schedule", "scan", "copy", "assemble", "arrange", "book", "rename", "bates", "second-level", "videoconference", "meet-and-confer", "advise", "brief", "instruct", "compile", "collect", "circulate", "respond", "reply", "argue", "appear", "present", "prepared", "drafted", "reviewed", "attended", "analyzed", "revised"]
+    [
+        "draft",
+        "review",
+        "prepare",
+        "attend",
+        "research",
+        "analyze",
+        "analyse",
+        "revise",
+        "interview",
+        "coordinate",
+        "examine",
+        "evaluate",
+        "summarize",
+        "summarise",
+        "cite-check",
+        "defend",
+        "call",
+        "email",
+        "telephone",
+        "confer",
+        "conference",
+        "meet",
+        "discuss",
+        "strategize",
+        "update",
+        "file",
+        "organize",
+        "organise",
+        "investigate",
+        "travel",
+        "confirm",
+        "identify",
+        "negotiate",
+        "outline",
+        "edit",
+        "finalize",
+        "finalise",
+        "correspond",
+        "calendar",
+        "schedule",
+        "scan",
+        "copy",
+        "assemble",
+        "arrange",
+        "book",
+        "rename",
+        "bates",
+        "second-level",
+        "videoconference",
+        "meet-and-confer",
+        "advise",
+        "brief",
+        "instruct",
+        "compile",
+        "collect",
+        "circulate",
+        "respond",
+        "reply",
+        "argue",
+        "appear",
+        "present",
+        "prepared",
+        "drafted",
+        "reviewed",
+        "attended",
+        "analyzed",
+        "revised",
+    ]
 )
 
 
@@ -31,7 +121,7 @@ def normalize(text: str) -> str:
     out: list[str] = []
     for tok in re.findall(r"\S+", t):
         core = tok.lower().strip(",.;:()")
-        trail = tok[len(tok.rstrip(",.;:")):]
+        trail = tok[len(tok.rstrip(",.;:")) :]
         if core in ABBREVIATIONS:
             out.append(ABBREVIATIONS[core] + (trail if trail in (";", ",") else ""))
         else:

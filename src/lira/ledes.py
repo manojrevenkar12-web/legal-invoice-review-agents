@@ -220,7 +220,9 @@ def check(inv: Invoice) -> list[Issue]:
         if li.is_expense and not li.expense_code:
             issues.append(Issue("expense_code", f"line {li.line_no}: expense lines need an expense code", li.line_no))
         if inv.period_start and inv.period_end and not (inv.period_start <= li.date <= inv.period_end):
-            issues.append(Issue("outside_period", f"line {li.line_no}: dated {li.date} outside the billing period", li.line_no, fatal=False))
+            issues.append(
+                Issue("outside_period", f"line {li.line_no}: dated {li.date} outside the billing period", li.line_no, fatal=False)
+            )
     line_sum = money(sum((li.total for li in inv.lines), Decimal("0")))
     if line_sum != money(inv.total):
         issues.append(Issue("invoice_total", f"invoice total {inv.total} is not the sum of its lines {line_sum}"))

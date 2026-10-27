@@ -47,17 +47,25 @@ def score_ruleset(report: CompileReport, answer: list[dict[str, Any]]) -> dict[s
             wrong_clause.append({"rule": list(map(str, k)), "expected": a["clause_id"], "got": g["clause_id"]})
     n = len(want)
     return {
-        "rules_expected": n, "found": len(tp), "missed": [list(map(str, k)) for k in fn], "extra": [list(map(str, k)) for k in fp],
-        "recall": round(len(tp) / n, 4) if n else None, "precision": round(len(tp) / len(got), 4) if got else None,
-        "wrong_values": wrong_value, "wrong_clauses": wrong_clause,
+        "rules_expected": n,
+        "found": len(tp),
+        "missed": [list(map(str, k)) for k in fn],
+        "extra": [list(map(str, k)) for k in fp],
+        "recall": round(len(tp) / n, 4) if n else None,
+        "precision": round(len(tp) / len(got), 4) if got else None,
+        "wrong_values": wrong_value,
+        "wrong_clauses": wrong_clause,
         "exact": len(tp) - len({w["rule"][0] for w in wrong_value} | {w["rule"][0] for w in wrong_clause}),
-        "rejected_by_verifier": len(report.rejected), "disagreements_with_patterns": len(report.disagreements),
+        "rejected_by_verifier": len(report.rejected),
+        "disagreements_with_patterns": len(report.disagreements),
     }
 
 
-async def evaluate(docs: list[tuple[GuidelineDocument, str]], answers: dict[str, list[dict[str, Any]]], router: ModelRouter) -> dict[str, Any]:
+async def evaluate(
+    docs: list[tuple[GuidelineDocument, str]], answers: dict[str, list[dict[str, Any]]], router: ModelRouter
+) -> dict[str, Any]:
     out: dict[str, Any] = {}
-    totals = {"expected": 0, "found": 0, "extra": 0, "wrong_values": 0, "rejected_by_verifier": 0}
+    totals: dict[str, Any] = {"expected": 0, "found": 0, "extra": 0, "wrong_values": 0, "rejected_by_verifier": 0}
     for doc, name in docs:
         rep = await compile_guidelines(doc, router, name)
         s = score_ruleset(rep, answers[f"{doc.tenant}@v{doc.version}"])

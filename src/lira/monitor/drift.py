@@ -137,17 +137,35 @@ def monitor(rows: list[dict[str, Any]], models: NlpModels, reference: tuple[str,
             oov = float(np.mean(cur["oov"]))
             enough = len(cur_rows) >= int(cfg["min_lines"])
             pvals = {f: _p_value(ref[f], cur[f], f in CATEGORICAL) for f in cfg["alert_features"]}
-            drivers = sorted((f for f in cfg["alert_features"] if scores[f] >= float(cfg["alert"]["psi"])
-                              and pvals[f] < float(cfg["alert"]["p_value"])), key=lambda f: -scores[f])
+            drivers = sorted(
+                (f for f in cfg["alert_features"] if scores[f] >= float(cfg["alert"]["psi"]) and pvals[f] < float(cfg["alert"]["p_value"])),
+                key=lambda f: -scores[f],
+            )
             oov_jump = oov - ref_oov >= float(cfg["alert"]["oov_rate_increase"]) and pvals.get("oov", 1.0) < float(cfg["alert"]["p_value"])
             alert = enough and (bool(drivers) or oov_jump)
-            item = {"firm": firm, "month": month, "lines": len(cur_rows), "psi": scores,
-                    "max_alerting_psi": max(scores[f] for f in cfg["alert_features"]),
-                    "oov_rate": round(oov, 4), "reference_oov_rate": round(ref_oov, 4), "alert": alert,
-                    "drivers": drivers + (["oov_rate"] if oov_jump and "oov_rate" not in drivers else [])}
+            item = {
+                "firm": firm,
+                "month": month,
+                "lines": len(cur_rows),
+                "psi": scores,
+                "max_alerting_psi": max(scores[f] for f in cfg["alert_features"]),
+                "oov_rate": round(oov, 4),
+                "reference_oov_rate": round(ref_oov, 4),
+                "alert": alert,
+                "drivers": drivers + (["oov_rate"] if oov_jump and "oov_rate" not in drivers else []),
+            }
             report.append(item)
             if emit:
-                metrics.emit({"firm": firm, "check": "narrative_drift"}, max_psi=item["max_alerting_psi"], oov_rate=item["oov_rate"],
-                             drift_alert=float(alert))
-    return {"reference": list(reference), "windows": report, "alerts": [w for w in report if w["alert"]],
-            "thresholds": cfg["alert"], "alert_features": cfg["alert_features"]}
+                metrics.emit(
+                    {"firm": firm, "check": "narrative_drift"},
+                    max_psi=item["max_alerting_psi"],
+                    oov_rate=item["oov_rate"],
+                    drift_alert=float(alert),
+                )
+    return {
+        "reference": list(reference),
+        "windows": report,
+        "alerts": [w for w in report if w["alert"]],
+        "thresholds": cfg["alert"],
+        "alert_features": cfg["alert_features"],
+    }

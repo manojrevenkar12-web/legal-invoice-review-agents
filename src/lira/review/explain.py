@@ -37,10 +37,18 @@ def explain(f: Finding, li: LineItem | None, currency: str) -> str:
     what = LEAD.get(f.kind, f.kind.value.replace("_", " "))
     hours = f"{li.units} h, " if li.is_fee else ""
     quote = next((e.text for e in f.evidence if e.source in ("line", "model") and e.text), "")
-    said = f' ("{quote}")' if quote and len(quote) < 160 and f.kind in (FindingKind.BLOCK, FindingKind.VAGUE, FindingKind.CLERICAL,
-                                                                     FindingKind.CONFERENCE) else ""
+    said = (
+        f' ("{quote}")'
+        if quote and len(quote) < 160 and f.kind in (FindingKind.BLOCK, FindingKind.VAGUE, FindingKind.CLERICAL, FindingKind.CONFERENCE)
+        else ""
+    )
     clause = f' Clause {f.clause.clause_id} of the billing guidelines: "{f.clause.quote}"' if f.clause else ""
     amount = -f.adjustment if f.adjustment < 0 else Decimal("0")
-    outcome = (f"The line is not payable ({currency} {amount:,.2f})." if f.action == "reject"
-               else f"The line is reduced by {currency} {amount:,.2f}." if amount else "No amount is adjusted; please correct the entry.")
+    outcome = (
+        f"The line is not payable ({currency} {amount:,.2f})."
+        if f.action == "reject"
+        else f"The line is reduced by {currency} {amount:,.2f}."
+        if amount
+        else "No amount is adjusted; please correct the entry."
+    )
     return f"Line {li.line_no} ({hours}{li.date:%d %b %Y}) {what}{said}.{clause} {outcome}"

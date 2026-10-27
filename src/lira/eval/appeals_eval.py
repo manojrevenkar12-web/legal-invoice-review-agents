@@ -7,18 +7,30 @@ from typing import Any
 import numpy as np
 
 from lira.agents.appeal_graph import AppealDeps, build_appeal_graph
-from lira.nlp.models import NlpModels
 from lira.llm.router import ModelRouter
+from lira.nlp.models import NlpModels
 from lira.reference import Reference
 from lira.sim.appeals import appeal_for
 
 
-async def evaluate(runs: list[Any], truth: dict[tuple[str, str], dict[str, Any]], ref: Reference, nlp: NlpModels, router: ModelRouter,
-                   n: int = 120, seed: int = 3) -> dict[str, Any]:
+async def evaluate(
+    runs: list[Any],
+    truth: dict[tuple[str, str], dict[str, Any]],
+    ref: Reference,
+    nlp: NlpModels,
+    router: ModelRouter,
+    n: int = 120,
+    seed: int = 3,
+) -> dict[str, Any]:
     rng = np.random.default_rng(seed)
-    pool = [(run, f) for run in runs for f in run.findings
-            if f.line_no and f.status == "proposed" and f.kind.value in ("block_billing", "vague_description", "clerical_work",
-                                                                         "internal_conference", "travel_time")]
+    pool = [
+        (run, f)
+        for run in runs
+        for f in run.findings
+        if f.line_no
+        and f.status == "proposed"
+        and f.kind.value in ("block_billing", "vague_description", "clerical_work", "internal_conference", "travel_time")
+    ]
     picks = [pool[i] for i in rng.choice(len(pool), size=min(n, len(pool)), replace=False)] if pool else []
     graph = build_appeal_graph(AppealDeps(nlp, router, human="skip"))
     rows = []
@@ -28,12 +40,30 @@ async def evaluate(runs: list[Any], truth: dict[tuple[str, str], dict[str, Any]]
         ap = appeal_for(f.model_dump(mode="json"), tk, rng)
         matter = ref.matters[inv.client_matter_id]
         tenant = ref.tenants[matter.tenant]
-        state = await graph.ainvoke({"appeal": {
-            "message": ap["message"], "finding": f.model_dump(mode="json"), "description": inv.line(f.line_no).description,
-            "firm_name": ref.firms[inv.law_firm_id].name, "tenant": tenant.id, "tenant_name": tenant.name, "currency": tenant.currency}})
+        state = await graph.ainvoke(
+            {
+                "appeal": {
+                    "message": ap["message"],
+                    "finding": f.model_dump(mode="json"),
+                    "description": inv.line(f.line_no).description,
+                    "firm_name": ref.firms[inv.law_firm_id].name,
+                    "tenant": tenant.id,
+                    "tenant_name": tenant.name,
+                    "currency": tenant.currency,
+                }
+            }
+        )
         rec = (state.get("recommendation") or {}).get("recommendation")
-        rows.append({"intent": ap["intent"], "predicted_intent": state["intent"], "justified": ap["justified"], "recommendation": rec,
-                     "outcome": state.get("outcome"), "problems": state.get("problems", [])})
+        rows.append(
+            {
+                "intent": ap["intent"],
+                "predicted_intent": state["intent"],
+                "justified": ap["justified"],
+                "recommendation": rec,
+                "outcome": state.get("outcome"),
+                "problems": state.get("problems", []),
+            }
+        )
     assessed = [r for r in rows if r["recommendation"]]
     right = [r for r in assessed if (r["recommendation"] == "reverse") == r["justified"]]
     rev = [r for r in assessed if r["recommendation"] == "reverse"]

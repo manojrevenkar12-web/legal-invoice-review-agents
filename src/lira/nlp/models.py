@@ -33,12 +33,48 @@ from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
 
 from lira.nlp.text import normalize, task_segments
 
-GENERIC = ("attention to file", "work on matter", "review documents", "legal research", "trial preparation", "correspondence",
-           "review file", "follow up", "draft document", "discovery work", "prepare for meeting", "work on brief", "various emails",
-           "review and revise", "case management", "analysis", "research", "conference")
-CLERICAL_WORDS = ("organize", "organise", "copy", "distribute", "calendar", "electronic filing", "scan", "schedule", "bates",
-                  "assemble", "binder", "contact list", "courier", "book meeting", "rename", "index", "tab exhibits", "catering",
-                  "label", "file notice")
+GENERIC = (
+    "attention to file",
+    "work on matter",
+    "review documents",
+    "legal research",
+    "trial preparation",
+    "correspondence",
+    "review file",
+    "follow up",
+    "draft document",
+    "discovery work",
+    "prepare for meeting",
+    "work on brief",
+    "various emails",
+    "review and revise",
+    "case management",
+    "analysis",
+    "research",
+    "conference",
+)
+CLERICAL_WORDS = (
+    "organize",
+    "organise",
+    "copy",
+    "distribute",
+    "calendar",
+    "electronic filing",
+    "scan",
+    "schedule",
+    "bates",
+    "assemble",
+    "binder",
+    "contact list",
+    "courier",
+    "book meeting",
+    "rename",
+    "index",
+    "tab exhibits",
+    "catering",
+    "label",
+    "file notice",
+)
 CLASSES = ("PT", "AS", "OC", "LA", "OT")
 ACTIVITIES = tuple(f"A{n}" for n in range(101, 112))
 JUDGEMENT = ("block_billing", "vague_description", "clerical_work")
@@ -100,8 +136,12 @@ class NlpModels:
         if not rows:
             return {q: np.zeros(0) for q in self.judgement}
         texts = [normalize(r["description"]) for r in rows]
-        struct = np.array([structural(r["description"], r.get("timekeeper_class", ""), r.get("activity_code", ""), float(r.get("units", 0)))
-                           for r in rows])
+        struct = np.array(
+            [
+                structural(r["description"], r.get("timekeeper_class", ""), r.get("activity_code", ""), float(r.get("units", 0)))
+                for r in rows
+            ]
+        )
         X = self.text.transform(texts, struct)
         return {q: m.predict_proba(X)[:, 1] for q, m in self.judgement.items()}
 
@@ -118,8 +158,12 @@ class NlpModels:
         return np.divide(W, s, out=np.full_like(W, 1.0 / W.shape[1]), where=s > 0)
 
     def hours_z(self, task: str, activity: str, cls: str, units: float) -> float:
-        med, mad = (self.hours.get(f"{task}|{activity}|{cls}") or self.hours.get(f"{task}|{activity}|*") or self.hours.get(f"{task}|*|*")
-                    or self.hours["*|*|*"])
+        med, mad = (
+            self.hours.get(f"{task}|{activity}|{cls}")
+            or self.hours.get(f"{task}|{activity}|*")
+            or self.hours.get(f"{task}|*|*")
+            or self.hours["*|*|*"]
+        )
         return (math.log(max(units, 0.1)) - med) / max(mad * 1.4826, 0.15)
 
     def intents(self, messages: list[str]) -> list[tuple[str, float]]:
@@ -142,8 +186,9 @@ class NlpModels:
         return m
 
 
-def train(history: list[dict[str, Any]], appeals: list[dict[str, Any]] | None = None, validation_from: str | None = None,
-          seed: int = 7) -> NlpModels:
+def train(
+    history: list[dict[str, Any]], appeals: list[dict[str, Any]] | None = None, validation_from: str | None = None, seed: int = 7
+) -> NlpModels:
     """history rows: description, task_code, activity_code, timekeeper_class, units, type, date, flags (past reviewer labels)."""
     fees = [r for r in history if r["type"] == "F"]
     if validation_from:
@@ -164,13 +209,18 @@ def train(history: list[dict[str, Any]], appeals: list[dict[str, Any]] | None = 
         clf.fit(X, y)
         judgement[q] = clf
         if va:
-            Xv = tm.transform([normalize(r["description"]) for r in va],
-                              np.array([structural(r["description"], r["timekeeper_class"], r["activity_code"], float(r["units"])) for r in va]))
+            Xv = tm.transform(
+                [normalize(r["description"]) for r in va],
+                np.array([structural(r["description"], r["timekeeper_class"], r["activity_code"], float(r["units"])) for r in va]),
+            )
             yv = np.array([q in r["flags"] for r in va], dtype=int)
             p = clf.predict_proba(Xv)[:, 1]
-            metrics[q] = {"auc_vs_reviewer_labels": round(float(roc_auc_score(yv, p)), 4) if 0 < yv.sum() < len(yv) else None,
-                          "ap_vs_reviewer_labels": round(float(average_precision_score(yv, p)), 4) if yv.sum() else None,
-                          "positives": int(yv.sum()), "n": len(yv)}
+            metrics[q] = {
+                "auc_vs_reviewer_labels": round(float(roc_auc_score(yv, p)), 4) if 0 < yv.sum() < len(yv) else None,
+                "ap_vs_reviewer_labels": round(float(average_precision_score(yv, p)), 4) if yv.sum() else None,
+                "positives": int(yv.sum()),
+                "n": len(yv),
+            }
     # task codes (firm-provided codes are mostly right; a few percent are slips)
     task_vec = TfidfVectorizer(ngram_range=(1, 2), min_df=2, sublinear_tf=True)
     Xt = task_vec.fit_transform(texts)
@@ -178,8 +228,10 @@ def train(history: list[dict[str, Any]], appeals: list[dict[str, Any]] | None = 
     task_clf.fit(Xt, [r["task_code"] for r in tr])
     if va:
         pv = task_clf.predict(task_vec.transform([normalize(r["description"]) for r in va]))
-        metrics["task_code"] = {"accuracy_vs_firm_codes": round(float(np.mean(pv == np.array([r["task_code"] for r in va]))), 4),
-                                "macro_f1": round(float(f1_score([r["task_code"] for r in va], pv, average="macro")), 4)}
+        metrics["task_code"] = {
+            "accuracy_vs_firm_codes": round(float(np.mean(pv == np.array([r["task_code"] for r in va]))), 4),
+            "macro_f1": round(float(f1_score([r["task_code"] for r in va], pv, average="macro")), 4),
+        }
     # topics
     topic_vec = TfidfVectorizer(min_df=3, max_df=0.5, stop_words="english")
     Tt = topic_vec.fit_transform(texts)
@@ -191,12 +243,17 @@ def train(history: list[dict[str, Any]], appeals: list[dict[str, Any]] | None = 
     groups: dict[str, list[float]] = {}
     for r in tr:
         h = math.log(max(float(r["units"]), 0.1))
-        for key in (f"{r['task_code']}|{r['activity_code']}|{r['timekeeper_class']}", f"{r['task_code']}|{r['activity_code']}|*",
-                    f"{r['task_code']}|*|*", "*|*|*"):
+        for key in (
+            f"{r['task_code']}|{r['activity_code']}|{r['timekeeper_class']}",
+            f"{r['task_code']}|{r['activity_code']}|*",
+            f"{r['task_code']}|*|*",
+            "*|*|*",
+        ):
             groups.setdefault(key, []).append(h)
     hours = {k: (float(np.median(v)), float(np.median(np.abs(np.array(v) - np.median(v))))) for k, v in groups.items() if len(v) >= 8}
-    model = NlpModels(version="", text=tm, judgement=judgement, task_vec=task_vec, task_clf=task_clf, topic_vec=topic_vec, topics=topics,
-                      hours=hours)
+    model = NlpModels(
+        version="", text=tm, judgement=judgement, task_vec=task_vec, task_clf=task_clf, topic_vec=topic_vec, topics=topics, hours=hours
+    )
     if appeals:
         iv = TfidfVectorizer(ngram_range=(1, 2), min_df=1, sublinear_tf=True)
         Xi = iv.fit_transform([a["message"].lower() for a in appeals])
@@ -205,6 +262,12 @@ def train(history: list[dict[str, Any]], appeals: list[dict[str, Any]] | None = 
         model.intent_vec, model.intent_clf = iv, ic
     digest = hashlib.sha256(json.dumps([[r["description"], r["flags"], r["task_code"]] for r in tr]).encode()).hexdigest()[:12]
     model.version = f"nlp-{digest}"
-    model.card = {"version": model.version, "trained_on_rows": len(tr), "validated_on_rows": len(va), "validation_from": validation_from,
-                  "labels": "past reviewer decisions (noisy)", "metrics": metrics}
+    model.card = {
+        "version": model.version,
+        "trained_on_rows": len(tr),
+        "validated_on_rows": len(va),
+        "validation_from": validation_from,
+        "labels": "past reviewer decisions (noisy)",
+        "metrics": metrics,
+    }
     return model

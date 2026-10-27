@@ -82,7 +82,11 @@ def mentions(text: str, roster: Roster | None = None, doc: Any = None) -> list[M
             tok = m.group(1)
             if len(tok) == 2 and (shouting or tok in NOT_INITIALS):
                 continue
-            tk = roster.resolve(tok) if len(tok) > 2 else (roster.initials.get(tok, [None])[0] if len(roster.initials.get(tok, [])) == 1 else None)
+            tk = (
+                roster.resolve(tok)
+                if len(tok) > 2
+                else (roster.initials.get(tok, [None])[0] if len(roster.initials.get(tok, [])) == 1 else None)
+            )
             if tk:
                 out.append(Mention(tok, m.start(), m.end(), "PERSON", tk))
     return sorted(out, key=lambda x: x.start)
@@ -101,7 +105,7 @@ def pseudonymize(text: str, ms: list[Mention], names: dict[str, str] | None = No
         key = m.timekeeper_id or m.text.lower()
         if key not in names:
             names[key] = f"PERSON_{len(names) + 1}"
-        out.append(text[last: m.start])
+        out.append(text[last : m.start])
         out.append(names[key])
         last = m.end
     out.append(text[last:])

@@ -1,0 +1,45 @@
+.skeleton {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-5);
+}
+.skeleton-bar {
+  display: block;
+  height: 0.85rem;
+  border-radius: var(--radius-s);
+  background: linear-gradient(90deg, var(--surface-sunk), var(--rule), var(--surface-sunk));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.state {
+  display: grid;
+  gap: var(--s-3);
+  justify-items: start;
+  padding: var(--s-6) var(--s-5);
+  max-width: var(--measure);
+}
+.state p { color: var(--ink-2); }
+.state-error h3 { color: var(--deduct); }
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 2.25rem;
+  padding: 0 var(--s-4);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.button:hover { border-color: var(--ink-3); }
+.button:disabled { opacity: 0.55; cursor: not-allowed; }
+.button-primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.button-primary:hover { background: var(--ink-2); }
+.button-deduct { color: var(--deduct); border-color: currentColor; }
+.button-kept { color: var(--kept); border-color: currentColor; }

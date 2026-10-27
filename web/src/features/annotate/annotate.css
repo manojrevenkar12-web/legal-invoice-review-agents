@@ -1,0 +1,17 @@
+.annotate { display: grid; align-content: start; gap: var(--s-5); }
+.annotate-item { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--s-6); max-width: 72rem; }
+.annotate-case { display: grid; gap: var(--s-3); align-content: start; }
+.annotate-kind { font-weight: 600; }
+.annotate-entry span { font-family: var(--font-doc); font-size: var(--step-1); }
+.annotate-letter { font-family: var(--font-doc); line-height: var(--leading-doc); padding: var(--s-3) var(--s-4); background: var(--surface); border-radius: var(--radius-m); }
+.rubric { border: 0; margin: 0; padding: 0; display: grid; gap: var(--s-3); align-content: start; }
+.rubric legend { font-weight: 600; margin-bottom: var(--s-2); }
+.rubric-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--s-2); align-items: center; padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--rule); }
+.rubric-choice { display: inline-flex; align-items: center; gap: var(--s-1); padding: var(--s-1) var(--s-3); border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-m); cursor: pointer; }
+.rubric-choice input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.rubric-choice:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.rubric-choice.is-on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.annotate-nav { display: flex; gap: var(--s-3); align-items: center; flex-wrap: wrap; }
+@media (max-width: 900px) { .annotate-item { grid-template-columns: 1fr; } }

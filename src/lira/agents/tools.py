@@ -25,8 +25,15 @@ class AgentRun[T]:
     model: str = ""
 
 
-async def run_tool_agent[T](router: ModelRouter, req: ModelRequest, tools: dict[str, Tool], final_tool: str,
-                         parse_final: Callable[[dict[str, Any]], T], max_steps: int, budget: Budget | None = None) -> AgentRun[T]:
+async def run_tool_agent[T](
+    router: ModelRouter,
+    req: ModelRequest,
+    tools: dict[str, Tool],
+    final_tool: str,
+    parse_final: Callable[[dict[str, Any]], T],
+    max_steps: int,
+    budget: Budget | None = None,
+) -> AgentRun[T]:
     messages = list(req.messages)
     calls: list[dict[str, Any]] = []
     cost = 0.0
@@ -60,5 +67,5 @@ async def run_tool_agent[T](router: ModelRouter, req: ModelRequest, tools: dict[
                 out = {"error": str(e)[:200]}
                 results.append(Block("tool_result", tool_use_id=u.tool_use_id, content=out, is_error=True))
             calls.append({"tool": u.name, "input": u.input, "ok": "error" not in out})
-        messages = messages + [Message("assistant", value), Message("user", results)]
+        messages = [*messages, Message("assistant", value), Message("user", results)]
     raise InvalidOutput(f"agent did not call {final_tool} within {max_steps} steps")

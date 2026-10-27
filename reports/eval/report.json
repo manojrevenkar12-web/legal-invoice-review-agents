@@ -243,7 +243,7 @@
     "model_findings_shown": 174,
     "ungrounded_model_findings_shown": 0,
     "invoices_not_reviewed": 0,
-    "seconds_per_invoice": 0.065
+    "seconds_per_invoice": 0.061
   },
   "faults": {
     "faults": {
@@ -488,8 +488,8 @@
     "abstained_when_unanswerable": 1.0,
     "unsupported_answers_shown": 0,
     "blocked_by_citation_check": 0,
-    "latency_ms_p50": 6.6,
-    "latency_ms_p95": 7.6,
+    "latency_ms_p50": 4.0,
+    "latency_ms_p95": 5.3,
     "failures": [
       {
         "tenant": "kestrel",
@@ -501,7 +501,7 @@
         "value_in_answer": true,
         "verified": true,
         "problems": [],
-        "latency_ms": 7.365693000338069
+        "latency_ms": 4.086525999809965
       },
       {
         "tenant": "kestrel",
@@ -513,7 +513,7 @@
         "value_in_answer": false,
         "verified": true,
         "problems": [],
-        "latency_ms": 6.915500000104657
+        "latency_ms": 3.407215000152064
       },
       {
         "tenant": "kestrel",
@@ -525,7 +525,7 @@
         "value_in_answer": false,
         "verified": true,
         "problems": [],
-        "latency_ms": 6.2025490001360595
+        "latency_ms": 3.70482499965874
       },
       {
         "tenant": "kestrel",
@@ -537,7 +537,7 @@
         "value_in_answer": false,
         "verified": true,
         "problems": [],
-        "latency_ms": 5.788326000129018
+        "latency_ms": 3.9867850000518956
       },
       {
         "tenant": "kestrel",
@@ -549,7 +549,7 @@
         "value_in_answer": false,
         "verified": true,
         "problems": [],
-        "latency_ms": 6.070830000226124
+        "latency_ms": 3.8518780002050335
       },
       {
         "tenant": "brightwater",
@@ -561,7 +561,7 @@
         "value_in_answer": true,
         "verified": true,
         "problems": [],
-        "latency_ms": 5.621976999918843
+        "latency_ms": 5.202459000429371
       },
       {
         "tenant": "brightwater",
@@ -573,7 +573,7 @@
         "value_in_answer": false,
         "verified": true,
         "problems": [],
-        "latency_ms": 5.683297000359744
+        "latency_ms": 4.515685999649577
       },
       {
         "tenant": "brightwater",
@@ -585,7 +585,7 @@
         "value_in_answer": true,
         "verified": true,
         "problems": [],
-        "latency_ms": 6.18776400006027
+        "latency_ms": 5.024337000577361
       },
       {
         "tenant": "brightwater",
@@ -597,7 +597,7 @@
         "value_in_answer": false,
         "verified": true,
         "problems": [],
-        "latency_ms": 7.21855499978119
+        "latency_ms": 4.544154000541312
       },
       {
         "tenant": "brightwater",
@@ -609,7 +609,7 @@
         "value_in_answer": false,
         "verified": true,
         "problems": [],
-        "latency_ms": 7.574178000140819
+        "latency_ms": 5.134048999934748
       }
     ]
   },
@@ -659,7 +659,135 @@
         ]
       }
     ],
-    "windows": 15,
+    "windows": [
+      {
+        "firm": "ashdown",
+        "month": "2026-08",
+        "lines": 94,
+        "max_psi": 0.2353,
+        "alert": false,
+        "drivers": []
+      },
+      {
+        "firm": "ashdown",
+        "month": "2026-09",
+        "lines": 77,
+        "max_psi": 0.1371,
+        "alert": false,
+        "drivers": []
+      },
+      {
+        "firm": "ashdown",
+        "month": "2026-10",
+        "lines": 86,
+        "max_psi": 0.7043,
+        "alert": false,
+        "drivers": []
+      },
+      {
+        "firm": "harlow",
+        "month": "2026-08",
+        "lines": 140,
+        "max_psi": 0.2004,
+        "alert": false,
+        "drivers": []
+      },
+      {
+        "firm": "harlow",
+        "month": "2026-09",
+        "lines": 124,
+        "max_psi": 0.2812,
+        "alert": false,
+        "drivers": []
+      },
+      {
+        "firm": "harlow",
+        "month": "2026-10",
+        "lines": 143,
+        "max_psi": 0.3992,
+        "alert": false,
+        "drivers": []
+      },
+      {
+        "firm": "lindqvist",
+        "month": "2026-08",
+        "lines": 55,
+        "max_psi": 0.515,
+        "alert": false,
+        "drivers": []
+      },
+      {
+        "firm": "lindqvist",
+        "month": "2026-09",
+        "lines": 80,
+        "max_psi": 17.5946,
+        "alert": true,
+        "drivers": [
+          "upper_share"
+        ]
+      },
+      {
+        "firm": "lindqvist",
+        "month": "2026-10",
+        "lines": 83,
+        "max_psi": 17.5946,
+        "alert": true,
+        "drivers": [
+          "upper_share"
+        ]
+      },
+      {
+        "firm": "marchetti",
+        "month": "2026-08",
+        "lines": 104,
+        "max_psi": 0.1311,
+        "alert": false,
+        "drivers": []
+      },
+      {
+        "firm": "marchetti",
+        "month": "2026-09",
+        "lines": 47,
+        "max_psi": 0.2617,
+        "alert": false,
+        "drivers": []
+      },
+      {
+        "firm": "marchetti",
+        "month": "2026-10",
+        "lines": 46,
+        "max_psi": 0.3185,
+        "alert": false,
+        "drivers": []
+      },
+      {
+        "firm": "okafor",
+        "month": "2026-08",
+        "lines": 81,
+        "max_psi": 0.4011,
+        "alert": false,
+        "drivers": []
+      },
+      {
+        "firm": "okafor",
+        "month": "2026-09",
+        "lines": 61,
+        "max_psi": 0.6634,
+        "alert": false,
+        "drivers": []
+      },
+      {
+        "firm": "okafor",
+        "month": "2026-10",
+        "lines": 44,
+        "max_psi": 1.701,
+        "alert": true,
+        "drivers": [
+          "oov",
+          "oov_rate"
+        ]
+      }
+    ],
     "quality_by_firm": {
       "lindqvist": {
         "before": {
@@ -678,21 +806,63 @@
   "appeals": {
     "appeals": 120,
     "intent_accuracy": 1.0,
-    "closed_without_model": 39,
+    "closed_without_model": 41,
     "closed_wrongly": 0,
-    "assessed_by_model": 81,
-    "recommendation_accuracy": 0.9383,
-    "reverse_precision": 0.8,
+    "assessed_by_model": 79,
+    "recommendation_accuracy": 0.9367,
+    "reverse_precision": 0.7143,
     "justified_appeals": 8,
-    "justified_recommended_reverse": 4,
+    "justified_recommended_reverse": 5,
     "blocked_by_verification": 0
   },
   "judge": {
     "items": 60,
     "length_padding_flips": 0,
     "judged": 59,
-    "annotations": false,
-    "agreement": null,
+    "annotations": true,
+    "agreement": {
+      "items": 59,
+      "supported": {
+        "annotators_kappa": 1.0,
+        "annotators_agree": 1.0,
+        "judge_vs_gold_kappa": 1.0,
+        "judge_vs_gold_agree": 1.0,
+        "settled_items": 59,
+        "unsettled_items": 0
+      },
+      "correct": {
+        "annotators_kappa": 1.0,
+        "annotators_agree": 1.0,
+        "judge_vs_gold_kappa": -0.0617,
+        "judge_vs_gold_agree": 0.7627,
+        "settled_items": 59,
+        "unsettled_items": 0
+      },
+      "specific": {
+        "annotators_kappa": 1.0,
+        "annotators_agree": 1.0,
+        "judge_vs_gold_kappa": 0.0,
+        "judge_vs_gold_agree": 0.9661,
+        "settled_items": 59,
+        "unsettled_items": 0
+      },
+      "professional": {
+        "annotators_kappa": 1.0,
+        "annotators_agree": 1.0,
+        "judge_vs_gold_kappa": 1.0,
+        "judge_vs_gold_agree": 1.0,
+        "settled_items": 59,
+        "unsettled_items": 0
+      },
+      "overall": {
+        "annotators_kappa": 1.0,
+        "annotators_agree": 1.0,
+        "judge_vs_gold_kappa": -0.0617,
+        "judge_vs_gold_agree": 0.7627,
+        "settled_items": 59,
+        "unsettled_items": 0
+      }
+    },
     "judge_vs_answer_key": {
       "items": 60,
       "correct_criterion_matches_answer_key": 0.75
@@ -724,5 +894,5 @@
       "sha256": "e3bc6249ab901cac"
     }
   },
-  "seconds": 17.0
+  "seconds": 15.3
 }

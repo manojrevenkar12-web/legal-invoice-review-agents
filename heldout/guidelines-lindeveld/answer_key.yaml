@@ -1,0 +1,60 @@
+client_name: Lindeveld Energie N.V.
+tenant: lindeveld
+version: 1
+effective_from: 2027-01-01
+rules:
+  - kind: budget
+    clause_id: "2.4"
+  - kind: nonbillable_role
+    clause_id: "3.3"
+    roles: ["student intern", "law librarian"]
+  - kind: max_attendees
+    clause_id: "3.4(a)"
+    event: hearing
+    max_timekeepers: 2
+  - kind: max_attendees
+    clause_id: "3.4(b)"
+    event: deposition
+    max_timekeepers: 1
+  - kind: rate_cap
+    clause_id: "4.1"
+  - kind: billing_increment
+    clause_id: "5.1"
+    hours: 0.1
+  - kind: vague_description
+    clause_id: "5.2"
+  - kind: block_billing
+    clause_id: "5.3"
+    action: reduce
+    reduce_factor: 0.25
+  - kind: max_daily_hours
+    clause_id: "5.4"
+    hours: 10
+  - kind: internal_conference
+    clause_id: "5.5"
+    policy: one_attendee
+  - kind: clerical_work
+    clause_id: "5.6"
+  - kind: research_cap
+    clause_id: "5.7"
+    hours_per_month: 8
+  - kind: travel_time
+    clause_id: "5.8"
+    rate_factor: 0.5
+  - kind: nonreimbursable_expense
+    clause_id: "6.2"
+    codes: [E103, E104, E105, E106, E109]
+  - kind: expense_unit_cap
+    clause_id: "6.3"
+    code: E101
+    max_unit_cost: 0.10
+  - kind: expense_unit_cap
+    clause_id: "6.4"
+    code: E111
+    max_unit_cost: 40
+  - kind: submission_deadline
+    clause_id: "7.3"
+    days: 60
+not_rules: ["1.1", "1.2", "1.3", "1.4", "2.1", "2.2", "2.3", "2.5", "2.6", "3.1", "3.2", "3.5", "3.6",
+            "4.2", "4.3", "5.9", "6.5", "6.6", "7.1", "7.2", "7.4", "7.5", "7.6", "8.1", "8.2", "8.3",
+            "8.4", "8.5", "9.1", "9.2"]

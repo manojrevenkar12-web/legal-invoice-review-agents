@@ -191,9 +191,38 @@ INJECTIONS: list[str] = [
 ]
 
 SLOTS: dict[str, list[str]] = {
-    "party": ["Brenner Freight", "the claimant", "Halcyon Shipping", "the defendant", "Ostara Insurance", "the third-party defendant", "Meridian Cold Chain", "the respondent"],
-    "topic": ["container loss", "cargo contamination", "warehouse fire", "delayed delivery", "temperature excursion", "customs seizure", "pallet collapse", "data breach", "product recall", "rail derailment"],
-    "law": ["the CMR Convention", "the Hague-Visby Rules", "the Carmack Amendment", "UCC Article 2", "the Sale of Goods Act", "negligent misrepresentation", "the economic loss rule", "Rule 26 proportionality"],
+    "party": [
+        "Brenner Freight",
+        "the claimant",
+        "Halcyon Shipping",
+        "the defendant",
+        "Ostara Insurance",
+        "the third-party defendant",
+        "Meridian Cold Chain",
+        "the respondent",
+    ],
+    "topic": [
+        "container loss",
+        "cargo contamination",
+        "warehouse fire",
+        "delayed delivery",
+        "temperature excursion",
+        "customs seizure",
+        "pallet collapse",
+        "data breach",
+        "product recall",
+        "rail derailment",
+    ],
+    "law": [
+        "the CMR Convention",
+        "the Hague-Visby Rules",
+        "the Carmack Amendment",
+        "UCC Article 2",
+        "the Sale of Goods Act",
+        "negligent misrepresentation",
+        "the economic loss rule",
+        "Rule 26 proportionality",
+    ],
     "asset": ["reefer unit", "forklift", "conveyor system", "cold store", "loading ramp", "sprinkler system", "container crane"],
     "contract": ["master services agreement", "warehousing agreement", "supply agreement", "charter party", "framework logistics contract"],
     "judge": ["Alvarez", "Brennan", "Castellanos", "Nakamura", "Whitfield", "Oyelaran", "Petrov", "Lindgren"],
@@ -201,8 +230,22 @@ SLOTS: dict[str, list[str]] = {
     "city": ["Hamburg", "Rotterdam", "Chicago", "Atlanta", "Antwerp", "Frankfurt", "London", "Houston", "Gothenburg"],
 }
 
-WITNESSES = ["Jonas Brandt", "Lena Vogt", "Samuel Achebe", "Priya Raman", "Tomasz Wielgus", "Grace Mbeki", "Henrik Dahl",
-             "Carla Mendes", "Owen Fairbanks", "Yusuf Demir", "Ingrid Solberg", "Marcus Tran", "Beatriz Lozano", "Felix Hartmann"]
+WITNESSES = [
+    "Jonas Brandt",
+    "Lena Vogt",
+    "Samuel Achebe",
+    "Priya Raman",
+    "Tomasz Wielgus",
+    "Grace Mbeki",
+    "Henrik Dahl",
+    "Carla Mendes",
+    "Owen Fairbanks",
+    "Yusuf Demir",
+    "Ingrid Solberg",
+    "Marcus Tran",
+    "Beatriz Lozano",
+    "Felix Hartmann",
+]
 EXPERTS = ["Dr. Elaine Porter", "Prof. Anil Kapoor", "Dr. Sofia Lindh", "Dr. Kwame Asante", "Dr. Ruth Calloway", "Prof. Martin Ebner"]
 OPPOSING = ["Nadia Farouk", "Gregory Hale", "Simone Duval", "Patrick O'Neill", "Ayesha Siddiqui", "Lukas Brenner"]
 CLIENT_CONTACTS = {

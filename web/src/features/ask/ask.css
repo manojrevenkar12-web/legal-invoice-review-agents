@@ -1,0 +1,16 @@
+.ask { display: grid; gap: var(--s-3); max-width: var(--measure); }
+.ask-form { display: flex; gap: var(--s-2); }
+.ask-form input {
+  flex: 1;
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--ink);
+}
+.ask-answer { display: grid; gap: var(--s-2); padding: var(--s-3) var(--s-4); border-left: 3px solid var(--kept); background: var(--surface); }
+.ask-answer.is-abstain { border-left-color: var(--caution); }
+.ask-text { font-family: var(--font-doc); font-size: var(--step-1); line-height: var(--leading-doc); }
+.ask-meta { font-size: var(--step--1); color: var(--ink-3); }

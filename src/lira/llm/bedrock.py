@@ -13,8 +13,14 @@ from botocore.exceptions import BotoCoreError, ClientError
 
 from lira.llm.base import Block, Message, ModelRequest, ModelResponse, ProviderError, Usage
 
-RETRYABLE = {"ThrottlingException", "ServiceUnavailableException", "ModelTimeoutException", "InternalServerException",
-             "ModelNotReadyException", "ServiceQuotaExceededException"}
+RETRYABLE = {
+    "ThrottlingException",
+    "ServiceUnavailableException",
+    "ModelTimeoutException",
+    "InternalServerException",
+    "ModelNotReadyException",
+    "ServiceQuotaExceededException",
+}
 
 
 def to_converse(req: ModelRequest, model: str, guardrail: dict[str, str] | None = None) -> dict[str, Any]:
@@ -34,13 +40,13 @@ def to_converse(req: ModelRequest, model: str, guardrail: dict[str, str] | None 
         else:
             choice = {"tool": {"name": req.tool_choice}}
         params["toolConfig"] = {
-            "tools": [{"toolSpec": {"name": t.name, "description": t.description, "inputSchema": {"json": t.input_schema}}}
-                      for t in req.tools],
+            "tools": [
+                {"toolSpec": {"name": t.name, "description": t.description, "inputSchema": {"json": t.input_schema}}} for t in req.tools
+            ],
             "toolChoice": choice,
         }
     if guardrail:
-        params["guardrailConfig"] = {"guardrailIdentifier": guardrail["id"], "guardrailVersion": guardrail["version"],
-                                     "trace": "enabled"}
+        params["guardrailConfig"] = {"guardrailIdentifier": guardrail["id"], "guardrailVersion": guardrail["version"], "trace": "enabled"}
     if req.prompt_id:
         params["requestMetadata"] = {"prompt": f"{req.prompt_id}-v{req.prompt_version}", "tenant": req.tenant or "none"}
     return params
@@ -55,8 +61,9 @@ def _message(m: Message) -> dict[str, Any]:
             content.append({"toolUse": {"toolUseId": b.tool_use_id, "name": b.name, "input": b.input}})
         else:
             payload = b.content if isinstance(b.content, dict) else {"result": b.content}
-            content.append({"toolResult": {"toolUseId": b.tool_use_id, "content": [{"json": payload}],
-                                           "status": "error" if b.is_error else "success"}})
+            content.append(
+                {"toolResult": {"toolUseId": b.tool_use_id, "content": [{"json": payload}], "status": "error" if b.is_error else "success"}}
+            )
     return {"role": m.role, "content": content}
 
 
@@ -71,8 +78,12 @@ def from_converse(resp: dict[str, Any], model: str, latency_ms: float) -> ModelR
     usage = resp.get("usage", {})
     stop = resp.get("stopReason", "end_turn")
     return ModelResponse(
-        content=blocks, stop_reason=stop, usage=Usage(usage.get("inputTokens", 0), usage.get("outputTokens", 0)), model=model,
-        provider="bedrock", latency_ms=float(resp.get("metrics", {}).get("latencyMs", latency_ms)),
+        content=blocks,
+        stop_reason=stop,
+        usage=Usage(usage.get("inputTokens", 0), usage.get("outputTokens", 0)),
+        model=model,
+        provider="bedrock",
+        latency_ms=float(resp.get("metrics", {}).get("latencyMs", latency_ms)),
         guardrail_action="GUARDRAIL_INTERVENED" if stop == "guardrail_intervened" else None,
     )
 
@@ -96,8 +107,9 @@ class BedrockProvider:
         if region not in self._clients:
             import boto3
 
-            self._clients[region] = boto3.client("bedrock-runtime", region_name=region,
-                                                 config=Config(retries={"max_attempts": 1, "mode": "standard"}, read_timeout=60))
+            self._clients[region] = boto3.client(
+                "bedrock-runtime", region_name=region, config=Config(retries={"max_attempts": 1, "mode": "standard"}, read_timeout=60)
+            )
         return self._clients[region]
 
     async def generate(self, req: ModelRequest, model: str) -> ModelResponse:

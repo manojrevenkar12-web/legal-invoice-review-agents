@@ -14,13 +14,39 @@ from typing import Any
 from lira.guidelines.documents import Clause
 from lira.utbms import EXPENSE_CODES
 
-NUM_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-             "eleven": 11, "twelve": 12, "fourteen": 14, "fifteen": 15, "twenty": 20, "thirty": 30, "forty-five": 45,
-             "sixty": 60, "ninety": 90}
-NEG = re.compile(r"\b(not (?:be )?(?:billable|bill(?:ed)?|paid|pay|charged|reimburs\w*|accepted|compensated|compensable|chargeable)|"
-                 r"will not (?:pay|be paid|reimburse|accept)|non-?billable|must not be charged|may not be charged|no charge|overheads?|unbillable)\b", re.I)
-ROLES = {"summer associate": r"summer associates?", "law clerk": r"law clerks?", "first-year associate": r"first[- ]year associates?",
-         "trainee": r"trainees?|trainee solicitors?", "paralegal": r"paralegals?"}
+NUM_WORDS = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+    "fourteen": 14,
+    "fifteen": 15,
+    "twenty": 20,
+    "thirty": 30,
+    "forty-five": 45,
+    "sixty": 60,
+    "ninety": 90,
+}
+NEG = re.compile(
+    r"\b(not (?:be )?(?:billable|bill(?:ed)?|paid|pay|charged|reimburs\w*|accepted|compensated|compensable|chargeable)|"
+    r"will not (?:pay|be paid|reimburse|accept)|non-?billable|must not be charged|may not be charged|no charge|overheads?|unbillable)\b",
+    re.I,
+)
+ROLES = {
+    "summer associate": r"summer associates?",
+    "law clerk": r"law clerks?",
+    "first-year associate": r"first[- ]year associates?",
+    "trainee": r"trainees?|trainee solicitors?",
+    "paralegal": r"paralegals?",
+}
 
 
 def _sentence(text: str, pattern: str) -> str:
@@ -65,7 +91,10 @@ def extract(clauses: list[Clause]) -> list[dict[str, Any]]:
             if roles and "staff matters" not in lo:
                 add("nonbillable_role", c, "|".join(ROLES[r] for r in roles), roles=roles)
         # attendance caps
-        m = re.search(r"(?:no more than|at most|limited to|maximum of|only)\s+(\w+(?:-\w+)?)(?:\s*\((\d+)\))?\s+(?:timekeepers?|attorneys?|fee earners?|lawyers?)", lo)
+        m = re.search(
+            r"(?:no more than|at most|limited to|maximum of|only)\s+(\w+(?:-\w+)?)(?:\s*\((\d+)\))?\s+(?:timekeepers?|attorneys?|fee earners?|lawyers?)",
+            lo,
+        )
         if m:
             n = _number(m.group(2) or m.group(1))
             for ev, pat in (("deposition", r"deposition"), ("hearing", r"hearing|court appearance|trial")):
@@ -116,8 +145,11 @@ def extract(clauses: list[Clause]) -> list[dict[str, Any]]:
                 add("travel_time", c, r"travel", rate_factor=Decimal("0"))
         # expenses not reimbursed
         if re.search(r"reimburs", lo) and neg:
-            codes = [code for code, name in EXPENSE_CODES.items()
-                     if code not in ("E123", "E124") and re.search(rf"\b{re.escape(name.lower())}\b", lo)]
+            codes = [
+                code
+                for code, name in EXPENSE_CODES.items()
+                if code not in ("E123", "E124") and re.search(rf"\b{re.escape(name.lower())}\b", lo)
+            ]
             if codes:
                 add("nonreimbursable_expense", c, r"reimburs|overhead", codes=codes)
         # copying cap

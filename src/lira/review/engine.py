@@ -17,7 +17,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import ROUND_FLOOR, Decimal
-from typing import Any
+from typing import Any, Literal
 
 from lira import config
 from lira.domain import ClauseRef, Evidence, Finding, FindingKind, Firm, Invoice, LineItem, Matter, money
@@ -75,10 +75,20 @@ def _floor(x: Decimal, step: Decimal) -> Decimal:
     return (x / step).to_integral_value(rounding=ROUND_FLOOR) * step
 
 
-def settle(inv: Invoice, matter: Matter, firm: Firm, ref: Reference, rules_at: Callable[[date], RuleSet | None],
-           signals: dict[str, LineSignals], spent_before: Decimal = ZERO, accepted: dict[str, list[Accepted]] | None = None,
-           pre_rejected: dict[str, FindingKind] | None = None, dismissed: set[str] | None = None,
-           confirmed: set[str] | None = None, uncertain: set[str] | None = None) -> Settlement:
+def settle(
+    inv: Invoice,
+    matter: Matter,
+    firm: Firm,
+    ref: Reference,
+    rules_at: Callable[[date], RuleSet | None],
+    signals: dict[str, LineSignals],
+    spent_before: Decimal = ZERO,
+    accepted: dict[str, list[Accepted]] | None = None,
+    pre_rejected: dict[str, FindingKind] | None = None,
+    dismissed: set[str] | None = None,
+    confirmed: set[str] | None = None,
+    uncertain: set[str] | None = None,
+) -> Settlement:
     cfg = config.load("review")
     auto = set(cfg["auto_apply"])
     accepted = accepted or {}
@@ -88,16 +98,34 @@ def settle(inv: Invoice, matter: Matter, firm: Firm, ref: Reference, rules_at: C
     out = Settlement()
     tenant = matter.tenant
 
-    def finding(li: LineItem | None, kind: FindingKind, action: str, rs: RuleSet | None, rule: Any, rationale: str,
-                evidence: list[Evidence] | None = None, delta: Decimal = ZERO, pending: bool = False) -> Finding:
+    def finding(
+        li: LineItem | None,
+        kind: FindingKind,
+        action: str,
+        rs: RuleSet | None,
+        rule: Any,
+        rationale: str,
+        evidence: list[Evidence] | None = None,
+        delta: Decimal = ZERO,
+        pending: bool = False,
+    ) -> Finding:
         fid = fid_of(li, kind)
-        decided_by = "person" if pending or kind.value not in auto else "rule"
+        decided_by: Literal["rule", "person"] = "person" if pending or kind.value not in auto else "rule"
         status = "rejected" if fid in dismissed else "proposed" if decided_by == "person" else "auto_applied"
         f = Finding(
-            id=fid, invoice=inv.number, line_no=li.line_no if li else None,
-            kind=kind, source="rule", decided_by=decided_by, action=action,  # type: ignore[arg-type]
-            adjustment=money(delta), clause=_ref(rs, rule) if rs and rule else None, evidence=evidence or [], confidence=1.0,
-            rationale=rationale, status=status,  # type: ignore[arg-type]
+            id=fid,
+            invoice=inv.number,
+            line_no=li.line_no if li else None,
+            kind=kind,
+            source="rule",
+            decided_by=decided_by,
+            action=action,  # type: ignore[arg-type]
+            adjustment=money(delta),
+            clause=_ref(rs, rule) if rs and rule else None,
+            evidence=evidence or [],
+            confidence=1.0,
+            rationale=rationale,
+            status=status,  # type: ignore[arg-type]
         )
         if fid in dismissed:
             f.adjustment = ZERO
@@ -126,8 +154,16 @@ def settle(inv: Invoice, matter: Matter, firm: Firm, ref: Reference, rules_at: C
         if li.is_expense:
             r = rs.one("nonreimbursable_expense")
             if isinstance(r, NonreimbursableExpenses) and li.expense_code in r.codes:
-                finding(li, FindingKind.EXPENSE, "reject", rs, r, f"Expense code {li.expense_code} is not reimbursed under clause {r.clause_id}.",
-                        [Evidence(source="line", text=li.expense_code)], -li.total)
+                finding(
+                    li,
+                    FindingKind.EXPENSE,
+                    "reject",
+                    rs,
+                    r,
+                    f"Expense code {li.expense_code} is not reimbursed under clause {r.clause_id}.",
+                    [Evidence(source="line", text=li.expense_code)],
+                    -li.total,
+                )
                 if effective(li, FindingKind.EXPENSE):
                     rejected.setdefault(li.line_no, FindingKind.EXPENSE)
             continue
@@ -137,35 +173,58 @@ def settle(inv: Invoice, matter: Matter, firm: Firm, ref: Reference, rules_at: C
             title = tk.title.lower()
             role = next((x for x in r.roles if x.lower() in title or (x.lower() == "trainee" and "trainee" in title)), None)
             if role:
-                finding(li, FindingKind.ROLE, "reject", rs, r, f"{tk.title} time is not billable under clause {r.clause_id}.",
-                        [Evidence(source="rule", text=f"timekeeper {tk.id}: {tk.title}")], -li.total)
+                finding(
+                    li,
+                    FindingKind.ROLE,
+                    "reject",
+                    rs,
+                    r,
+                    f"{tk.title} time is not billable under clause {r.clause_id}.",
+                    [Evidence(source="rule", text=f"timekeeper {tk.id}: {tk.title}")],
+                    -li.total,
+                )
                 if effective(li, FindingKind.ROLE):
                     rejected.setdefault(li.line_no, FindingKind.ROLE)
         sig = signals.get(li.line_no, LineSignals())
         r = rs.one("travel_time")
         if sig.travel and isinstance(r, TravelTime) and r.rate_factor == 0:
-            finding(li, FindingKind.TRAVEL, "reject", rs, r, f"Travel time is not billable under clause {r.clause_id}.",
-                    [Evidence(source="nlp", text="entry describes travel")], -li.total)
+            finding(
+                li,
+                FindingKind.TRAVEL,
+                "reject",
+                rs,
+                r,
+                f"Travel time is not billable under clause {r.clause_id}.",
+                [Evidence(source="nlp", text="entry describes travel")],
+                -li.total,
+            )
             if effective(li, FindingKind.TRAVEL):
                 rejected.setdefault(li.line_no, FindingKind.TRAVEL)
 
     # attendance caps: one event, several timekeepers
     groups: dict[str, list[LineItem]] = defaultdict(list)
     for li in inv.lines:
-        sig = signals.get(li.line_no)
-        if li.is_fee and sig and sig.event_key:
-            groups[sig.event_key].append(li)
-    for key, lis in groups.items():
+        ev_sig = signals.get(li.line_no)
+        if li.is_fee and ev_sig and ev_sig.event_key:
+            groups[ev_sig.event_key].append(li)
+    for _key, lis in groups.items():
         rs = rules[lis[0].line_no]
         kind = signals[lis[0].line_no].event_kind
         cap = next((r for r in (rs.of("max_attendees") if rs else []) if isinstance(r, MaxAttendees) and r.event == kind), None)
         if cap is None or len(lis) <= cap.max_timekeepers:
             continue
         ordered = sorted(lis, key=lambda x: (-_seniority(firm, x), int(x.line_no) if x.line_no.isdigit() else 0))
-        for li in ordered[cap.max_timekeepers:]:
-            finding(li, FindingKind.ATTENDEES, "reject", rs, cap,
-                    f"{len(lis)} timekeepers billed the same {kind}; clause {cap.clause_id} pays {cap.max_timekeepers}.",
-                    [Evidence(source="cross_line", text=f"same {kind}: lines {', '.join(x.line_no for x in ordered)}")], -li.total)
+        for li in ordered[cap.max_timekeepers :]:
+            finding(
+                li,
+                FindingKind.ATTENDEES,
+                "reject",
+                rs,
+                cap,
+                f"{len(lis)} timekeepers billed the same {kind}; clause {cap.clause_id} pays {cap.max_timekeepers}.",
+                [Evidence(source="cross_line", text=f"same {kind}: lines {', '.join(x.line_no for x in ordered)}")],
+                -li.total,
+            )
             if effective(li, FindingKind.ATTENDEES):
                 rejected.setdefault(li.line_no, FindingKind.ATTENDEES)
 
@@ -185,9 +244,11 @@ def settle(inv: Invoice, matter: Matter, firm: Firm, ref: Reference, rules_at: C
             steps[li.line_no]["increment"] = units[li.line_no]
     research_used: dict[tuple[int, int], Decimal] = defaultdict(lambda: ZERO)
     research_rule: dict[str, Any] = {}
-    open_months = {(li.date.year, li.date.month) for li in fees
-                   if li.line_no in uncertain and li.activity_code == "A102" and li.line_no not in rejected}
-    pending_units: dict[str, Decimal] = {}  # cuts that wait for a decision elsewhere: shown, not applied
+    open_months = {
+        (li.date.year, li.date.month)
+        for li in fees
+        if li.line_no in uncertain and li.activity_code == "A102" and li.line_no not in rejected
+    }
     for li in sorted(fees, key=lambda x: (x.date, _num(x.line_no))):
         if li.line_no in rejected or li.activity_code != "A102":
             continue
@@ -240,12 +301,21 @@ def settle(inv: Invoice, matter: Matter, firm: Firm, ref: Reference, rules_at: C
             out.adjustments[li.line_no] = -li.total
             continue
         if li.is_expense:
-            r = next((x for x in (rs.of("expense_unit_cap") if rs else []) if isinstance(x, ExpenseUnitCap) and x.code == li.expense_code), None)
+            r = next(
+                (x for x in (rs.of("expense_unit_cap") if rs else []) if isinstance(x, ExpenseUnitCap) and x.code == li.expense_code), None
+            )
             if r and li.unit_cost > r.max_unit_cost and live(li, FindingKind.EXPENSE_CAP):
                 delta = money(r.max_unit_cost * li.units) - li.total
-                finding(li, FindingKind.EXPENSE_CAP, "reduce", rs, r,
-                        f"Billed {li.unit_cost} per unit; clause {r.clause_id} reimburses at most {r.max_unit_cost}.",
-                        [Evidence(source="line", text=f"{li.units} x {li.unit_cost}")], delta)
+                finding(
+                    li,
+                    FindingKind.EXPENSE_CAP,
+                    "reduce",
+                    rs,
+                    r,
+                    f"Billed {li.unit_cost} per unit; clause {r.clause_id} reimburses at most {r.max_unit_cost}.",
+                    [Evidence(source="line", text=f"{li.units} x {li.unit_cost}")],
+                    delta,
+                )
                 out.adjustments[li.line_no] = delta
             else:
                 out.adjustments[li.line_no] = ZERO
@@ -258,33 +328,71 @@ def settle(inv: Invoice, matter: Matter, firm: Firm, ref: Reference, rules_at: C
         if "increment" in st:
             a = money(st["increment"] * li.unit_cost)
             r = rs.one("billing_increment") if rs else None
-            finding(li, FindingKind.INCREMENT, "reduce", rs, r, f"{li.units} h is not in {r.hours if r else ''} h increments; floored to {st['increment']} h.",
-                    [Evidence(source="line", text=f"{li.units} h")], a - amount_prev)
+            finding(
+                li,
+                FindingKind.INCREMENT,
+                "reduce",
+                rs,
+                r,
+                f"{li.units} h is not in {getattr(r, 'hours', '')} h increments; floored to {st['increment']} h.",
+                [Evidence(source="line", text=f"{li.units} h")],
+                a - amount_prev,
+            )
             amount_prev = a
         if "research" in st:
             rs_r, r = research_rule[li.line_no]
             a = money(st["research"] * li.unit_cost)
-            finding(li, FindingKind.RESEARCH, "reduce", rs_r, r, f"Research above {r.hours_per_month} h this month (clause {r.clause_id}).",
-                    [Evidence(source="rule", text=f"activity {li.activity_code}")], a - amount_prev)
+            finding(
+                li,
+                FindingKind.RESEARCH,
+                "reduce",
+                rs_r,
+                r,
+                f"Research above {r.hours_per_month} h this month (clause {r.clause_id}).",
+                [Evidence(source="rule", text=f"activity {li.activity_code}")],
+                a - amount_prev,
+            )
             amount_prev = a
         if "daily" in st:
             rs_d, r, day_total = daily_rule[li.line_no]
             a = money(st["daily"] * li.unit_cost)
-            finding(li, FindingKind.DAILY_HOURS, "reduce", rs_d, r, f"{day_total} h billed on {li.date}; clause {r.clause_id} allows {r.hours} h.",
-                    [Evidence(source="rule", text=f"{li.timekeeper_id} on {li.date}: {day_total} h")], a - amount_prev)
+            finding(
+                li,
+                FindingKind.DAILY_HOURS,
+                "reduce",
+                rs_d,
+                r,
+                f"{day_total} h billed on {li.date}; clause {r.clause_id} allows {r.hours} h.",
+                [Evidence(source="rule", text=f"{li.timekeeper_id} on {li.date}: {day_total} h")],
+                a - amount_prev,
+            )
             amount_prev = a
         if "research_pending" in st:
             rs_r, r = research_rule[li.line_no]
-            finding(li, FindingKind.RESEARCH, "reduce", rs_r, r,
-                    f"Research above {r.hours_per_month} h this month (clause {r.clause_id}), if the open findings on this month's research stand.",
-                    [Evidence(source="rule", text=f"activity {li.activity_code}")], money(st["research_pending"] * li.unit_cost) - amount_prev,
-                    pending=True)
+            finding(
+                li,
+                FindingKind.RESEARCH,
+                "reduce",
+                rs_r,
+                r,
+                f"Research above {r.hours_per_month} h this month (clause {r.clause_id}), if the open findings on this month's research stand.",
+                [Evidence(source="rule", text=f"activity {li.activity_code}")],
+                money(st["research_pending"] * li.unit_cost) - amount_prev,
+                pending=True,
+            )
         if "daily_pending" in st:
             rs_d, r, day_total = daily_rule[li.line_no]
-            finding(li, FindingKind.DAILY_HOURS, "reduce", rs_d, r,
-                    f"{day_total} h billed on {li.date}; clause {r.clause_id} allows {r.hours} h, if the open findings on that day stand.",
-                    [Evidence(source="rule", text=f"{li.timekeeper_id} on {li.date}: {day_total} h")],
-                    money(st["daily_pending"] * li.unit_cost) - amount_prev, pending=True)
+            finding(
+                li,
+                FindingKind.DAILY_HOURS,
+                "reduce",
+                rs_d,
+                r,
+                f"{day_total} h billed on {li.date}; clause {r.clause_id} allows {r.hours} h, if the open findings on that day stand.",
+                [Evidence(source="rule", text=f"{li.timekeeper_id} on {li.date}: {day_total} h")],
+                money(st["daily_pending"] * li.unit_cost) - amount_prev,
+                pending=True,
+            )
         approved = ref.approved_rate(tenant, li.timekeeper_id, li.date)
         allowed = approved if approved is not None else li.unit_cost
         sig = signals.get(li.line_no, LineSignals())
@@ -300,13 +408,31 @@ def settle(inv: Invoice, matter: Matter, firm: Firm, ref: Reference, rules_at: C
         else:
             allowed_now = allowed
         if allowed < li.unit_cost:
-            if kind == FindingKind.TRAVEL:
-                finding(li, kind, "reduce", rs, travel, f"Travel billed at {li.unit_cost}; clause {travel.clause_id} pays {allowed} ({travel.rate_factor} of the approved rate).",  # type: ignore[union-attr]
-                        [Evidence(source="nlp", text="entry describes travel")], a - amount_prev)
+            if kind == FindingKind.TRAVEL and travel.rate_factor == 0:  # type: ignore[union-attr]
+                pass  # recorded once above as a rejection; this step only settles the amount while it is open
+            elif kind == FindingKind.TRAVEL:
+                finding(
+                    li,
+                    kind,
+                    "reduce",
+                    rs,
+                    travel,
+                    f"Travel billed at {li.unit_cost}; clause {travel.clause_id} pays {allowed} ({travel.rate_factor} of the approved rate).",  # type: ignore[union-attr]
+                    [Evidence(source="nlp", text="entry describes travel")],
+                    a - amount_prev,
+                )
             else:
                 r = rs.one("rate_cap") if rs else None
-                finding(li, kind, "reduce", rs, r, f"Billed rate {li.unit_cost} is above the approved rate {approved} for {li.timekeeper_id} on {li.date}.",
-                        [Evidence(source="rule", text=f"approved rate {approved}")], a - amount_prev)
+                finding(
+                    li,
+                    kind,
+                    "reduce",
+                    rs,
+                    r,
+                    f"Billed rate {li.unit_cost} is above the approved rate {approved} for {li.timekeeper_id} on {li.date}.",
+                    [Evidence(source="rule", text=f"approved rate {approved}")],
+                    a - amount_prev,
+                )
         block = next((d for d in accepted.get(li.line_no, []) if d.kind == FindingKind.BLOCK and d.action == "reduce"), None)
         if block and block.reduce_factor:
             amount = money(units[li.line_no] * allowed_now * (1 - block.reduce_factor))
@@ -318,14 +444,26 @@ def settle(inv: Invoice, matter: Matter, firm: Firm, ref: Reference, rules_at: C
     rs_end = rules_at(inv.period_end or inv.date)
     r = rs_end.one("submission_deadline") if rs_end else None
     if isinstance(r, SubmissionDeadline) and inv.period_end and (inv.date - inv.period_end).days > r.days:
-        finding(None, FindingKind.DEADLINE, "flag", rs_end, r,
-                f"Invoice dated {(inv.date - inv.period_end).days} days after the billing period; clause {r.clause_id} allows {r.days}.",
-                [Evidence(source="rule", text=f"period end {inv.period_end}, invoice date {inv.date}")])
+        finding(
+            None,
+            FindingKind.DEADLINE,
+            "flag",
+            rs_end,
+            r,
+            f"Invoice dated {(inv.date - inv.period_end).days} days after the billing period; clause {r.clause_id} allows {r.days}.",
+            [Evidence(source="rule", text=f"period end {inv.period_end}, invoice date {inv.date}")],
+        )
     r = rs_end.one("budget") if rs_end else None
     if r is not None and spent_before + inv.total > matter.budget:
-        finding(None, FindingKind.BUDGET, "flag", rs_end, r,
-                f"Billed to date {money(spent_before + inv.total)} exceeds the approved budget {matter.budget}; check for an approved increase.",
-                [Evidence(source="rule", text=f"budget {matter.budget}")])
+        finding(
+            None,
+            FindingKind.BUDGET,
+            "flag",
+            rs_end,
+            r,
+            f"Billed to date {money(spent_before + inv.total)} exceeds the approved budget {matter.budget}; check for an approved increase.",
+            [Evidence(source="rule", text=f"budget {matter.budget}")],
+        )
     out.rejected = rejected
     return out
 

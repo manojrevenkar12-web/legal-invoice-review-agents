@@ -20,8 +20,12 @@ from lira import config
 from lira.domain import ClauseRef, Evidence, Finding, FindingKind, Firm, Invoice, LineItem, money
 from lira.guidelines.rules import BlockBilling, InternalConference, RuleSet
 
-QUESTION_KIND = {"block_billing": FindingKind.BLOCK, "vague_description": FindingKind.VAGUE, "clerical_work": FindingKind.CLERICAL,
-                 "internal_conference": FindingKind.CONFERENCE}
+QUESTION_KIND = {
+    "block_billing": FindingKind.BLOCK,
+    "vague_description": FindingKind.VAGUE,
+    "clerical_work": FindingKind.CLERICAL,
+    "internal_conference": FindingKind.CONFERENCE,
+}
 
 
 @dataclass
@@ -60,8 +64,15 @@ def verify_decision(d: dict[str, Any], view: ModelView, rs: RuleSet | None) -> l
     return problems
 
 
-def adjudicate(inv: Invoice, firm: Firm, analysis: dict[str, dict[str, Any]], rules_at: Callable[[date], RuleSet | None],
-               views: dict[str, ModelView], model_failed: bool, rejected_by_rules: set[str]) -> Adjudication:
+def adjudicate(
+    inv: Invoice,
+    firm: Firm,
+    analysis: dict[str, dict[str, Any]],
+    rules_at: Callable[[date], RuleSet | None],
+    views: dict[str, ModelView],
+    model_failed: bool,
+    rejected_by_rules: set[str],
+) -> Adjudication:
     cfg = config.load("review")
     weights = cfg["severity_weights"]
     agree, disagree = float(cfg["agreement_confidence"]), float(cfg["disagreement_confidence"])
@@ -93,7 +104,10 @@ def adjudicate(inv: Invoice, firm: Firm, analysis: dict[str, dict[str, Any]], ru
             if d is not None:
                 dec = d["decision"]
                 if dec == "violation":
-                    conf, why = (agree if p >= 0.5 else disagree), "model" + (" and classifier agree" if p >= 0.5 else "; classifier disagrees")
+                    conf, why = (
+                        (agree if p >= 0.5 else disagree),
+                        "model" + (" and classifier agree" if p >= 0.5 else "; classifier disagrees"),
+                    )
                 elif dec == "unsure":
                     conf, why = disagree, "model unsure"
                 elif p >= override:
@@ -141,20 +155,36 @@ def adjudicate(inv: Invoice, firm: Firm, analysis: dict[str, dict[str, Any]], ru
         action, adj = "reject", -li.total
         if isinstance(rule, BlockBilling) and rule.action == "reduce" and rule.reduce_factor is not None:
             action, adj = "reduce", -money(li.total * rule.reduce_factor)
-        ev = [Evidence(source="nlp", text=f"classifier p={analysis[ln]['p'].get(q, 0):.2f}" if q != "internal_conference"
-                       else f"names a colleague at the firm: {', '.join(analysis[ln].get('colleagues', []))}")]
+        ev = [
+            Evidence(
+                source="nlp",
+                text=f"classifier p={analysis[ln]['p'].get(q, 0):.2f}"
+                if q != "internal_conference"
+                else f"names a colleague at the firm: {', '.join(analysis[ln].get('colleagues', []))}",
+            )
+        ]
         if d is not None:
             ev.append(Evidence(source="model", text=d.get("evidence_quote", "")))
         if q == "internal_conference":
             meeting = _meeting(inv, ln, analysis)
             ev.append(Evidence(source="cross_line", text=f"same meeting: lines {', '.join(sorted(meeting, key=int))}"))
-        out.append(Finding(
-            id=f"{inv.number}:{ln}:{kind.value}", invoice=inv.number, line_no=ln, kind=kind, source="model" if d is not None else "nlp",
-            decided_by="person", action=action, adjustment=adj,  # type: ignore[arg-type]
-            clause=ClauseRef(document=rs.document, clause_id=rule.clause_id, quote=rule.quote), evidence=ev, confidence=conf,
-            severity=round(float(-adj) * float(weights.get(kind.value, 1.0)) * conf, 2),
-            rationale=(d.get("reason", "") if d else "") + f" [{why}]",
-        ))
+        out.append(
+            Finding(
+                id=f"{inv.number}:{ln}:{kind.value}",
+                invoice=inv.number,
+                line_no=ln,
+                kind=kind,
+                source="model" if d is not None else "nlp",
+                decided_by="person",
+                action=action,  # type: ignore[arg-type]
+                adjustment=adj,
+                clause=ClauseRef(document=rs.document, clause_id=rule.clause_id, quote=rule.quote),
+                evidence=ev,
+                confidence=conf,
+                severity=round(float(-adj) * float(weights.get(kind.value, 1.0)) * conf, 2),
+                rationale=(d.get("reason", "") if d else "") + f" [{why}]",
+            )
+        )
     return Adjudication(out, dropped)
 
 
@@ -189,29 +219,62 @@ def flag_findings(inv: Invoice, analysis: dict[str, dict[str, Any]], rejected_by
         if a is None:
             continue
         if a.get("injection"):
-            out.append(Finding(id=f"{inv.number}:{li.line_no}:prompt_injection", invoice=inv.number, line_no=li.line_no,
-                               kind=FindingKind.INJECTION, source="guard", decided_by="person", action="flag",
-                               evidence=[Evidence(source="guard", text=a["injection"])], confidence=1.0,
-                               severity=round(float(li.total) * float(w["prompt_injection"]) * 0.25, 2),
-                               rationale="The entry contains an instruction addressed to a reviewer or an AI system. "
-                                         "No automated opinion on this line is applied; please review it yourself."))
+            out.append(
+                Finding(
+                    id=f"{inv.number}:{li.line_no}:prompt_injection",
+                    invoice=inv.number,
+                    line_no=li.line_no,
+                    kind=FindingKind.INJECTION,
+                    source="guard",
+                    decided_by="person",
+                    action="flag",
+                    evidence=[Evidence(source="guard", text=a["injection"])],
+                    confidence=1.0,
+                    severity=round(float(li.total) * float(w["prompt_injection"]) * 0.25, 2),
+                    rationale="The entry contains an instruction addressed to a reviewer or an AI system. "
+                    "No automated opinion on this line is applied; please review it yourself.",
+                )
+            )
         if li.line_no in rejected_by_rules:
             continue
         tc = cfg["task_code"]
-        if a.get("task_code_pred") and a["task_code_pred"] != li.task_code and float(a.get("task_code_conf", 0)) >= float(tc["min_confidence"]):
-            out.append(Finding(id=f"{inv.number}:{li.line_no}:task_code_mismatch", invoice=inv.number, line_no=li.line_no,
-                               kind=FindingKind.TASK_CODE, source="nlp", decided_by="person", action="flag",
-                               evidence=[Evidence(source="nlp", text=f"reads as {a['task_code_pred']} (p={a['task_code_conf']:.2f})")],
-                               confidence=round(float(a["task_code_conf"]), 2),
-                               severity=round(float(li.total) * float(w["task_code_mismatch"]) * 0.25, 2),
-                               rationale=f"Billed as {li.task_code}; the description reads as {a['task_code_pred']}."))
+        if (
+            a.get("task_code_pred")
+            and a["task_code_pred"] != li.task_code
+            and float(a.get("task_code_conf", 0)) >= float(tc["min_confidence"])
+        ):
+            out.append(
+                Finding(
+                    id=f"{inv.number}:{li.line_no}:task_code_mismatch",
+                    invoice=inv.number,
+                    line_no=li.line_no,
+                    kind=FindingKind.TASK_CODE,
+                    source="nlp",
+                    decided_by="person",
+                    action="flag",
+                    evidence=[Evidence(source="nlp", text=f"reads as {a['task_code_pred']} (p={a['task_code_conf']:.2f})")],
+                    confidence=round(float(a["task_code_conf"]), 2),
+                    severity=round(float(li.total) * float(w["task_code_mismatch"]) * 0.25, 2),
+                    rationale=f"Billed as {li.task_code}; the description reads as {a['task_code_pred']}.",
+                )
+            )
         uz = cfg["unusual_time"]
         if float(a.get("hours_z", 0)) >= float(uz["robust_z"]) and li.units >= Decimal(str(uz["min_hours"])) and a.get("tasks", 1) < 2:
-            out.append(Finding(id=f"{inv.number}:{li.line_no}:unusual_time", invoice=inv.number, line_no=li.line_no,
-                               kind=FindingKind.UNUSUAL, source="nlp", decided_by="person", action="flag",
-                               evidence=[Evidence(source="nlp", text=f"{li.units} h, robust z={a['hours_z']:.1f}")], confidence=0.6,
-                               severity=round(float(li.total) * float(w["unusual_time"]) * 0.25, 2),
-                               rationale=f"{li.units} h is far above what this task usually takes for this timekeeper level."))
+            out.append(
+                Finding(
+                    id=f"{inv.number}:{li.line_no}:unusual_time",
+                    invoice=inv.number,
+                    line_no=li.line_no,
+                    kind=FindingKind.UNUSUAL,
+                    source="nlp",
+                    decided_by="person",
+                    action="flag",
+                    evidence=[Evidence(source="nlp", text=f"{li.units} h, robust z={a['hours_z']:.1f}")],
+                    confidence=0.6,
+                    severity=round(float(li.total) * float(w["unusual_time"]) * 0.25, 2),
+                    rationale=f"{li.units} h is far above what this task usually takes for this timekeeper level.",
+                )
+            )
     return out
 
 

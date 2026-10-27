@@ -1,0 +1,15 @@
+.firm-grid { display: grid; grid-template-columns: 16rem minmax(0, 1fr); gap: var(--s-6); align-items: start; }
+.firm-list { display: grid; border-top: 1px solid var(--rule); }
+.firm-item { display: grid; padding: var(--s-3) var(--s-2); border-bottom: 1px solid var(--rule); text-decoration: none; }
+.firm-item small { color: var(--ink-3); }
+.firm-item.is-active { background: var(--surface); box-shadow: inset 3px 0 0 var(--ink); }
+.firm-invoice { display: grid; gap: var(--s-4); max-width: 52rem; }
+.firm-adjustments { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-4); }
+.firm-adjustment { display: grid; gap: var(--s-2); padding-bottom: var(--s-4); border-bottom: 1px solid var(--rule); justify-items: start; }
+.firm-adjustment header { display: flex; justify-content: space-between; width: 100%; gap: var(--s-3); }
+.firm-explanation { font-family: var(--font-doc); line-height: var(--leading-doc); max-width: var(--measure); }
+.firm-filed { color: var(--person); }
+.firm-appeal { display: grid; gap: var(--s-2); width: 100%; max-width: var(--measure); }
+.firm-appeal textarea { width: 100%; padding: var(--s-2); border: 1px solid var(--rule-strong); border-radius: var(--radius-m); background: var(--surface);
+  color: var(--ink); font: inherit; }
+@media (max-width: 900px) { .firm-grid { grid-template-columns: 1fr; } }

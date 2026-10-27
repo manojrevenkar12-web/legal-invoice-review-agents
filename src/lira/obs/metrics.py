@@ -21,11 +21,13 @@ def emit(dimensions: dict[str, str], **values: float) -> dict[str, Any]:
     doc: dict[str, Any] = {
         "_aws": {
             "Timestamp": int(time.time() * 1000),
-            "CloudWatchMetrics": [{
-                "Namespace": NAMESPACE,
-                "Dimensions": [sorted(dimensions)],
-                "Metrics": [{"Name": k, "Unit": UNITS.get(k, "Count")} for k in values],
-            }],
+            "CloudWatchMetrics": [
+                {
+                    "Namespace": NAMESPACE,
+                    "Dimensions": [sorted(dimensions)],
+                    "Metrics": [{"Name": k, "Unit": UNITS.get(k, "Count")} for k in values],
+                }
+            ],
         },
         **dimensions,
         **values,

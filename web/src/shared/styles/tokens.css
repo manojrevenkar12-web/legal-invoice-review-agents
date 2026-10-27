@@ -1,0 +1,123 @@
+/* Design tokens. Every colour, size and duration in the console comes from here (mirrored in theme.ts for motion).
+   The visual language is the reviewer's ledger: amounts, strike-throughs and a margin mark saying who decides. */
+
+:root {
+  /* colour: cool paper and green-black ink; three semantic inks for the ledger */
+  --paper: #f4f6f2;
+  --surface: #ffffff;
+  --surface-sunk: #eceee9;
+  --ink: #17201c;
+  --ink-2: #4a5650;
+  --ink-3: #6f7a74;
+  --rule: #d8ddd6;
+  --rule-strong: #b9c1b8;
+  --deduct: #a3321f;      /* money taken off a line */
+  --deduct-wash: #f7e7e3;
+  --kept: #2a6a4c;        /* paid as billed, or a dismissed finding */
+  --kept-wash: #e3f0e8;
+  --person: #3b4aa0;      /* waiting for a person */
+  --person-wash: #e7e9f6;
+  --caution: #8a5a00;     /* an instruction hidden in an entry, a degraded run */
+  --caution-wash: #f6edd9;
+  --focus: #3b4aa0;
+
+  /* type */
+  --font-ui: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --font-doc: "Newsreader", Georgia, "Times New Roman", serif;
+  --step--1: 0.8125rem;   /* 13 */
+  --step-0: 0.9375rem;    /* 15 */
+  --step-1: 1.125rem;     /* 18 */
+  --step-2: 1.4375rem;    /* 23 */
+  --step-3: 1.875rem;     /* 30 */
+  --step-4: 2.625rem;     /* 42 */
+  --leading-ui: 1.45;
+  --leading-doc: 1.6;
+  --measure: 68ch;
+
+  /* space (4 px base) and shape */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+  --s-7: 3rem;
+  --radius-s: 4px;
+  --radius-m: 8px;
+  --rail: 19rem;
+  --inspector: 24rem;
+  --shadow-lift: 0 1px 0 var(--rule), 0 8px 24px -16px rgba(23, 32, 28, 0.35);
+
+  /* motion */
+  --dur-fast: 120ms;
+  --dur: 220ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111714;
+    --surface: #18201c;
+    --surface-sunk: #0d1210;
+    --ink: #e4ebe6;
+    --ink-2: #aab6af;
+    --ink-3: #85918a;
+    --rule: #2b3530;
+    --rule-strong: #3d4943;
+    --deduct: #f08a73;
+    --deduct-wash: #3a1f19;
+    --kept: #7cc9a2;
+    --kept-wash: #16301f;
+    --person: #a7b2f2;
+    --person-wash: #22284a;
+    --caution: #e7b45a;
+    --caution-wash: #3a2c10;
+    --focus: #a7b2f2;
+    --shadow-lift: 0 1px 0 var(--rule), 0 8px 24px -16px rgba(0, 0, 0, 0.8);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111714;
+  --surface: #18201c;
+  --surface-sunk: #0d1210;
+  --ink: #e4ebe6;
+  --ink-2: #aab6af;
+  --ink-3: #85918a;
+  --rule: #2b3530;
+  --rule-strong: #3d4943;
+  --deduct: #f08a73;
+  --deduct-wash: #3a1f19;
+  --kept: #7cc9a2;
+  --kept-wash: #16301f;
+  --person: #a7b2f2;
+  --person-wash: #22284a;
+  --caution: #e7b45a;
+  --caution-wash: #3a2c10;
+  --focus: #a7b2f2;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--step-0);
+  line-height: var(--leading-ui);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+h1 { font-size: var(--step-3); line-height: 1.15; }
+h2 { font-size: var(--step-2); line-height: 1.2; }
+h3 { font-size: var(--step-1); line-height: 1.3; }
+p { margin: 0; }
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-s); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

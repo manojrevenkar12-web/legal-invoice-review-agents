@@ -1,0 +1,22 @@
+.amount { display: inline-flex; gap: var(--s-2); align-items: baseline; white-space: nowrap; }
+.amount-struck { position: relative; color: var(--ink-3); }
+.amount-strike {
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: 52%;
+  height: 1.5px;
+  background: var(--deduct);
+  transform-origin: left center;
+}
+.amount-paid { color: var(--deduct); font-weight: 600; }
+.mark {
+  display: inline-grid;
+  place-items: center;
+  width: 1.1rem;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+.mark-rule { color: var(--ink); }
+.mark-person { color: var(--person); }
+.mark-open { color: var(--person); }

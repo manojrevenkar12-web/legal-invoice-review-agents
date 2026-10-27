@@ -9,6 +9,7 @@ client's guidelines.
 from __future__ import annotations
 
 import hashlib
+import itertools
 import math
 import re
 from collections import Counter
@@ -22,7 +23,60 @@ import numpy as np
 from lira.guidelines.documents import GuidelineDocument
 
 _WORD = re.compile(r"[a-z0-9]+(?:[-'][a-z0-9]+)*")
-STOP = frozenset(["the", "a", "an", "of", "to", "and", "or", "in", "on", "for", "by", "with", "is", "are", "be", "will", "may", "must", "not", "any", "all", "this", "that", "these", "those", "our", "we", "you", "your", "it", "its", "as", "at", "from", "per", "such", "shall", "each", "other", "than", "which", "who", "whom", "what", "when", "where", "how", "does", "do", "can"])
+STOP = frozenset(
+    [
+        "the",
+        "a",
+        "an",
+        "of",
+        "to",
+        "and",
+        "or",
+        "in",
+        "on",
+        "for",
+        "by",
+        "with",
+        "is",
+        "are",
+        "be",
+        "will",
+        "may",
+        "must",
+        "not",
+        "any",
+        "all",
+        "this",
+        "that",
+        "these",
+        "those",
+        "our",
+        "we",
+        "you",
+        "your",
+        "it",
+        "its",
+        "as",
+        "at",
+        "from",
+        "per",
+        "such",
+        "shall",
+        "each",
+        "other",
+        "than",
+        "which",
+        "who",
+        "whom",
+        "what",
+        "when",
+        "where",
+        "how",
+        "does",
+        "do",
+        "can",
+    ]
+)
 
 
 def words(text: str) -> list[str]:
@@ -50,21 +104,35 @@ def chunk(doc: GuidelineDocument, max_words: int = 160, overlap: int = 30) -> li
     for c in doc.clauses:
         ws = c.text.split()
         if len(ws) <= max_words:
-            out.append(Chunk(f"{doc.tenant}/v{doc.version}#{c.id}", doc.tenant, doc.version, doc.effective_from, c.id, c.text, c.breadcrumb))
+            out.append(
+                Chunk(f"{doc.tenant}/v{doc.version}#{c.id}", doc.tenant, doc.version, doc.effective_from, c.id, c.text, c.breadcrumb)
+            )
             continue
         sentences = re.split(r"(?<=[.;])\s+", c.text)
-        part, buf = 0, []
+        part, buf = 0, list[str]()
         for s in sentences:
-            if buf and len(" ".join(buf + [s]).split()) > max_words:
+            if buf and len(" ".join([*buf, s]).split()) > max_words:
                 part += 1
-                out.append(Chunk(f"{doc.tenant}/v{doc.version}#{c.id}:{part}", doc.tenant, doc.version, doc.effective_from, c.id,
-                                 " ".join(buf), c.breadcrumb))
+                out.append(
+                    Chunk(
+                        f"{doc.tenant}/v{doc.version}#{c.id}:{part}",
+                        doc.tenant,
+                        doc.version,
+                        doc.effective_from,
+                        c.id,
+                        " ".join(buf),
+                        c.breadcrumb,
+                    )
+                )
                 tail = " ".join(buf).split()[-overlap:]
                 buf = [" ".join(tail)]
             buf.append(s)
         part += 1
-        out.append(Chunk(f"{doc.tenant}/v{doc.version}#{c.id}:{part}", doc.tenant, doc.version, doc.effective_from, c.id,
-                         " ".join(buf), c.breadcrumb))
+        out.append(
+            Chunk(
+                f"{doc.tenant}/v{doc.version}#{c.id}:{part}", doc.tenant, doc.version, doc.effective_from, c.id, " ".join(buf), c.breadcrumb
+            )
+        )
     return out
 
 
@@ -103,7 +171,7 @@ class HashingEmbedder:
         out = np.zeros((len(texts), self.dim), dtype=np.float32)
         for i, t in enumerate(texts):
             ws = words(t)
-            for tok in ws + [a + "_" + b for a, b in zip(ws, ws[1:], strict=False)]:
+            for tok in ws + [a + "_" + b for a, b in itertools.pairwise(ws)]:
                 h = int(hashlib.md5(tok.encode()).hexdigest(), 16)
                 out[i, h % self.dim] += 1.0 if (h >> 9) & 1 else -1.0
             n = np.linalg.norm(out[i])
@@ -199,10 +267,11 @@ class LexicalReranker:
             w = set(words(h.chunk.embed_text))
             return len(q & w) / len(q)
 
-        return sorted(hits, key=lambda h: (-(cov(h) + 30 * h.score)))[:k]
+        return sorted(hits, key=lambda h: -(cov(h) + 30 * h.score))[:k]
 
 
-def retrieve(index: HybridIndex, query: str, tenant: str, k: int = 4, on: date | None = None, reranker: Any = None,
-             candidates: int = 12) -> list[Hit]:
+def retrieve(
+    index: HybridIndex, query: str, tenant: str, k: int = 4, on: date | None = None, reranker: Any = None, candidates: int = 12
+) -> list[Hit]:
     hits = index.search(query, tenant, k=candidates, on=on)
     return (reranker or LexicalReranker()).rerank(query, hits, k)

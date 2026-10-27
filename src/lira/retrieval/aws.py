@@ -29,19 +29,30 @@ INDEX_MAPPING: dict[str, Any] = {
             "clause_id": {"type": "keyword"},
             "breadcrumb": {"type": "text"},
             "text": {"type": "text", "analyzer": "english"},
-            "embedding": {"type": "knn_vector", "dimension": 1024,
-                          "method": {"name": "hnsw", "engine": "faiss", "space_type": "innerproduct",
-                                     "parameters": {"ef_construction": 128, "m": 16}}},
+            "embedding": {
+                "type": "knn_vector",
+                "dimension": 1024,
+                "method": {
+                    "name": "hnsw",
+                    "engine": "faiss",
+                    "space_type": "innerproduct",
+                    "parameters": {"ef_construction": 128, "m": 16},
+                },
+            },
         }
     },
 }
 
 SEARCH_PIPELINE: dict[str, Any] = {
     "description": "Hybrid BM25 + k-NN for guideline clauses",
-    "phase_results_processors": [{"normalization-processor": {
-        "normalization": {"technique": "min_max"},
-        "combination": {"technique": "arithmetic_mean", "parameters": {"weights": [0.4, 0.6]}},
-    }}],
+    "phase_results_processors": [
+        {
+            "normalization-processor": {
+                "normalization": {"technique": "min_max"},
+                "combination": {"technique": "arithmetic_mean", "parameters": {"weights": [0.4, 0.6]}},
+            }
+        }
+    ],
 }
 
 
@@ -52,10 +63,14 @@ def hybrid_query(query: str, vector: Sequence[float], tenant: str, version: int 
     return {
         "size": k,
         "_source": {"excludes": ["embedding"]},
-        "query": {"hybrid": {"queries": [
-            {"bool": {"must": [{"multi_match": {"query": query, "fields": ["text", "breadcrumb^0.5"]}}], "filter": filters}},
-            {"knn": {"embedding": {"vector": list(map(float, vector)), "k": k, "filter": {"bool": {"filter": filters}}}}},
-        ]}},
+        "query": {
+            "hybrid": {
+                "queries": [
+                    {"bool": {"must": [{"multi_match": {"query": query, "fields": ["text", "breadcrumb^0.5"]}}], "filter": filters}},
+                    {"knn": {"embedding": {"vector": list(map(float, vector)), "k": k, "filter": {"bool": {"filter": filters}}}}},
+                ]
+            }
+        },
     }
 
 
@@ -73,23 +88,40 @@ class OpenSearchIndex:
         body: list[dict[str, Any]] = []
         for c, v in zip(chunks, vecs, strict=True):
             body.append({"index": {"_index": self.index, "_id": c.id}})
-            body.append({"tenant": c.tenant, "version": c.version, "effective_from": c.effective_from.isoformat(),
-                         "clause_id": c.clause_id, "breadcrumb": c.breadcrumb, "text": c.text, "embedding": [float(x) for x in v]})
+            body.append(
+                {
+                    "tenant": c.tenant,
+                    "version": c.version,
+                    "effective_from": c.effective_from.isoformat(),
+                    "clause_id": c.clause_id,
+                    "breadcrumb": c.breadcrumb,
+                    "text": c.text,
+                    "embedding": [float(x) for x in v],
+                }
+            )
         self.client.bulk(body=body)
 
     def search(self, query: str, tenant: str, k: int = 5, on: date | None = None, version: int | None = None) -> list[Hit]:
         if not tenant:
             raise ValueError("tenant is required")
         vec = self.embedder.embed([query])[0]
-        resp = self.client.search(index=self.index, body=hybrid_query(query, vec, tenant, version, k),
-                                  params={"search_pipeline": self.pipeline})
+        resp = self.client.search(
+            index=self.index, body=hybrid_query(query, vec, tenant, version, k), params={"search_pipeline": self.pipeline}
+        )
         out = []
         for h in resp["hits"]["hits"]:
             s = h["_source"]
             if s["tenant"] != tenant:  # defence in depth: never return another tenant's clause
                 continue
-            c = Chunk(h["_id"], s["tenant"], int(s["version"]), date.fromisoformat(s["effective_from"]), s["clause_id"], s["text"],
-                      s.get("breadcrumb", ""))
+            c = Chunk(
+                h["_id"],
+                s["tenant"],
+                int(s["version"]),
+                date.fromisoformat(s["effective_from"]),
+                s["clause_id"],
+                s["text"],
+                s.get("breadcrumb", ""),
+            )
             out.append(Hit(c, float(h["_score"])))
         return out
 
@@ -104,8 +136,12 @@ class TitanEmbedder:
     def embed(self, texts: Sequence[str]) -> np.ndarray:
         out = []
         for t in texts:
-            r = self.client.invoke_model(modelId=self.name, contentType="application/json", accept="application/json",
-                                         body=json.dumps({"inputText": t[:8000], "dimensions": self.dim, "normalize": True}))
+            r = self.client.invoke_model(
+                modelId=self.name,
+                contentType="application/json",
+                accept="application/json",
+                body=json.dumps({"inputText": t[:8000], "dimensions": self.dim, "normalize": True}),
+            )
             out.append(json.loads(r["body"].read())["embedding"])
         return np.array(out, dtype=np.float32)
 
@@ -120,8 +156,11 @@ class BedrockKnowledgeBase:
         f: dict[str, Any] = {"equals": {"key": "tenant", "value": tenant}}
         if version is not None:
             f = {"andAll": [f, {"equals": {"key": "version", "value": version}}]}
-        return {"knowledgeBaseId": self.kb, "retrievalQuery": {"text": query},
-                "retrievalConfiguration": {"vectorSearchConfiguration": {"numberOfResults": k, "overrideSearchType": "HYBRID", "filter": f}}}
+        return {
+            "knowledgeBaseId": self.kb,
+            "retrievalQuery": {"text": query},
+            "retrievalConfiguration": {"vectorSearchConfiguration": {"numberOfResults": k, "overrideSearchType": "HYBRID", "filter": f}},
+        }
 
     def search(self, query: str, tenant: str, k: int = 5, on: date | None = None, version: int | None = None) -> list[Hit]:
         if not tenant:
@@ -132,9 +171,15 @@ class BedrockKnowledgeBase:
             md = r.get("metadata", {})
             if md.get("tenant") != tenant:
                 continue
-            c = Chunk(str(r.get("location", {}).get("s3Location", {}).get("uri", "")), tenant, int(md.get("version", 0)),
-                      date.fromisoformat(str(md.get("effective_from", "1970-01-01"))), str(md.get("clause_id", "")),
-                      r["content"]["text"], str(md.get("breadcrumb", "")))
+            c = Chunk(
+                str(r.get("location", {}).get("s3Location", {}).get("uri", "")),
+                tenant,
+                int(md.get("version", 0)),
+                date.fromisoformat(str(md.get("effective_from", "1970-01-01"))),
+                str(md.get("clause_id", "")),
+                r["content"]["text"],
+                str(md.get("breadcrumb", "")),
+            )
             out.append(Hit(c, float(r.get("score", 0.0))))
         return out
 
@@ -148,10 +193,13 @@ class BedrockReranker:
     def request(self, query: str, hits: list[Hit], k: int) -> dict[str, Any]:
         return {
             "queries": [{"type": "TEXT", "textQuery": {"text": query}}],
-            "sources": [{"type": "INLINE", "inlineDocumentSource": {"type": "TEXT", "textDocument": {"text": h.chunk.embed_text}}}
-                        for h in hits],
-            "rerankingConfiguration": {"type": "BEDROCK_RERANKING_MODEL", "bedrockRerankingConfiguration": {
-                "numberOfResults": min(k, len(hits)), "modelConfiguration": {"modelArn": self.model_arn}}},
+            "sources": [
+                {"type": "INLINE", "inlineDocumentSource": {"type": "TEXT", "textDocument": {"text": h.chunk.embed_text}}} for h in hits
+            ],
+            "rerankingConfiguration": {
+                "type": "BEDROCK_RERANKING_MODEL",
+                "bedrockRerankingConfiguration": {"numberOfResults": min(k, len(hits)), "modelConfiguration": {"modelArn": self.model_arn}},
+            },
         }
 
     def rerank(self, query: str, hits: list[Hit], k: int) -> list[Hit]:

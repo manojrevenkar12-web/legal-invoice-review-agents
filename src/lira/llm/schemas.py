@@ -131,8 +131,14 @@ RECORD_VERDICT = ToolSpec(
     description="Record the grade for each criterion and the overall verdict.",
     input_schema={
         "type": "object",
-        "properties": {"supported": _PF, "correct": _PF, "specific": _PF, "professional": _PF, "overall": _PF,
-                       "reasons": {"type": "string", "maxLength": 400}},
+        "properties": {
+            "supported": _PF,
+            "correct": _PF,
+            "specific": _PF,
+            "professional": _PF,
+            "overall": _PF,
+            "reasons": {"type": "string", "maxLength": 400},
+        },
         "required": ["supported", "correct", "specific", "professional", "overall", "reasons"],
     },
 )
@@ -147,6 +153,7 @@ TOOLS_FOR_PROMPT: dict[str, list[ToolSpec]] = {
 
 
 # ---------------------------------------------------------------- pydantic views used to validate outputs
+
 
 class _M(BaseModel):
     model_config = ConfigDict(extra="ignore")

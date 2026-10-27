@@ -12,6 +12,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+_Date = date  # a field named "date" shadows the type inside Invoice
 CENT = Decimal("0.01")
 
 
@@ -120,8 +121,8 @@ class Invoice(Frozen):
     law_firm_matter_id: str = ""
     client_matter_id: str
     total: Decimal
-    period_start: date | None = None
-    period_end: date | None = None
+    period_start: _Date | None = None
+    period_end: _Date | None = None
     description: str = ""
     lines: tuple[LineItem, ...]
 

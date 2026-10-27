@@ -78,3 +78,22 @@ class DocumentStore:
 
     def tenants(self) -> list[str]:
         return sorted(p.name for p in self.root.iterdir() if p.is_dir()) if self.root.exists() else []
+
+
+class MemoryRules:
+    """Approved RuleSets held in memory for one run (the service loads them from PostgreSQL per review)."""
+
+    def __init__(self, rulesets: list[RuleSet]):
+        self.rulesets = rulesets
+
+    def all(self, tenant: str) -> list[RuleSet]:
+        return sorted((r for r in self.rulesets if r.tenant == tenant), key=lambda r: r.version)
+
+    def get(self, tenant: str, version: int) -> RuleSet | None:
+        return next((r for r in self.rulesets if r.tenant == tenant and r.version == version), None)
+
+    def in_force(self, tenant: str, on: date) -> RuleSet:
+        approved = [r for r in self.all(tenant) if r.status == "approved" and r.effective_from <= on]
+        if not approved:
+            raise NoApprovedRules(f"no approved guidelines for {tenant} on {on}")
+        return max(approved, key=lambda r: (r.effective_from, r.version))

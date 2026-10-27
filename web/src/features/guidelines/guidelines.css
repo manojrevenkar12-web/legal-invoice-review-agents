@@ -1,0 +1,30 @@
+.page { padding: var(--s-5) clamp(var(--s-4), 4vw, var(--s-7)) var(--s-7); overflow-y: auto; height: 100%; }
+.page-head { display: grid; gap: var(--s-2); margin-bottom: var(--s-5); max-width: var(--measure); }
+.page-head p { color: var(--ink-2); }
+.guidelines { display: grid; grid-template-columns: 14rem minmax(0, 1fr); grid-template-areas: "head head" "nav body" "nav ask"; column-gap: var(--s-6);
+  align-content: start; }
+.guidelines .page-head { grid-area: head; }
+.versions { grid-area: nav; display: grid; align-content: start; border-top: 1px solid var(--rule); }
+.version { display: grid; text-align: left; gap: 2px; padding: var(--s-3) var(--s-2); border: 0; border-bottom: 1px solid var(--rule); background: none;
+  cursor: pointer; }
+.version small { color: var(--ink-3); }
+.version.is-active { background: var(--surface); box-shadow: inset 3px 0 0 var(--ink); }
+.version-body { grid-area: body; display: grid; gap: var(--s-5); min-width: 0; }
+.version-status { display: flex; gap: var(--s-4); align-items: center; flex-wrap: wrap; color: var(--ink-2); }
+.rules { width: 100%; border-collapse: collapse; }
+.rules th { text-align: left; font-size: var(--step--1); color: var(--ink-3); font-weight: 600; padding: var(--s-2); border-bottom: 1px solid var(--rule-strong); }
+.rules td { padding: var(--s-3) var(--s-2); border-bottom: 1px solid var(--rule); vertical-align: top; }
+.rules td:first-child { font-weight: 500; width: 30%; }
+.rules td:nth-child(2) { width: 5rem; color: var(--ink-2); }
+.rules .quote { font-family: var(--font-doc); font-style: italic; line-height: var(--leading-doc); max-width: var(--measure); }
+.changes, .refused { margin: var(--s-2) 0 0; padding-left: var(--s-5); display: grid; gap: var(--s-2); }
+.changes .was { color: var(--ink-3); text-decoration: line-through; }
+.change-clause { color: var(--ink-3); }
+.changes .now { color: var(--person); }
+.refused li { color: var(--deduct); }
+.crosscheck { color: var(--ink-2); font-size: var(--step--1); }
+.guidelines .ask { grid-area: ask; margin-top: var(--s-6); }
+@media (max-width: 900px) {
+  .guidelines { grid-template-columns: 1fr; grid-template-areas: "head" "nav" "body" "ask"; }
+  .rules td:first-child { width: auto; }
+}

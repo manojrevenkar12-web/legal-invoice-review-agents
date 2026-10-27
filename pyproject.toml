@@ -33,7 +33,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.7", "mypy>=1.13", "moto>=5", "types-PyYAML"]
-infra = ["aws-cdk-lib>=2.170", "constructs>=10", "cdk-nag>=2.28"]
+infra = ["aws-cdk-lib>=2.170", "constructs>=10", "cdk-nag>=2.36,<3"]
 
 [project.scripts]
 lira = "lira.cli:main"
@@ -47,6 +47,8 @@ lira = ["prompts/*.yaml", "service/migrations/*.sql"]
 [tool.pytest.ini_options]
 testpaths = ["tests", "infra/tests"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 markers = [
   "slow: builds the simulated world and trains the models (seconds to a minute)",
   "db: needs PostgreSQL (LIRA_TEST_DATABASE_URL)",
@@ -61,7 +63,7 @@ extend-exclude = ["web", "infra/cdk.out"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "ASYNC", "PT"]
-ignore = ["RUF001", "RUF002", "RUF003", "B008", "SIM108", "RUF012"]
+ignore = ["RUF001", "RUF002", "RUF003", "B008", "SIM108", "RUF012", "E501", "PT018", "PT011"]
 
 [tool.mypy]
 python_version = "3.12"

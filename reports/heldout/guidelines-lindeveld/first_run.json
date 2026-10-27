@@ -1,0 +1,91 @@
+{
+  "set": "guidelines-lindeveld",
+  "status": "blind",
+  "sha256": "936428d6f6c53ea3edc607d4e3673dfd70bfb064b46684424a2251d9eaaa7886",
+  "ran_at": "2026-10-27T18:51:50+00:00",
+  "model_mode": "simulated",
+  "kind": "guidelines",
+  "scores": {
+    "rules_expected": 17,
+    "found": 8,
+    "missed": [
+      [
+        "nonbillable_role",
+        "None",
+        "None"
+      ],
+      [
+        "vague_description",
+        "None",
+        "None"
+      ],
+      [
+        "block_billing",
+        "None",
+        "None"
+      ],
+      [
+        "max_daily_hours",
+        "None",
+        "None"
+      ],
+      [
+        "internal_conference",
+        "None",
+        "None"
+      ],
+      [
+        "research_cap",
+        "None",
+        "None"
+      ],
+      [
+        "travel_time",
+        "None",
+        "None"
+      ],
+      [
+        "expense_unit_cap",
+        "None",
+        "E111"
+      ],
+      [
+        "submission_deadline",
+        "None",
+        "None"
+      ]
+    ],
+    "extra": [],
+    "recall": 0.4706,
+    "precision": 1.0,
+    "wrong_values": [
+      {
+        "rule": [
+          "nonreimbursable_expense",
+          "None",
+          "None"
+        ],
+        "param": "codes",
+        "expected": [
+          "E103",
+          "E104",
+          "E105",
+          "E106",
+          "E109"
+        ],
+        "got": [
+          "E103",
+          "E104",
+          "E105"
+        ]
+      }
+    ],
+    "wrong_clauses": [],
+    "exact": 7,
+    "rejected_by_verifier": 0,
+    "disagreements_with_patterns": 0,
+    "rules_from_non_rule_clauses": [],
+    "rejected": [],
+    "clauses_parsed": 51
+  }
+}

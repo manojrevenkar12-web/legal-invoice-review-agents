@@ -24,10 +24,19 @@ def validate(inv: Invoice, ref: Reference) -> Validation:
     findings: list[Finding] = []
     for i in ledes.check(inv):
         if i.line_no is not None:
-            findings.append(Finding(id=f"{inv.number}:{i.line_no}:format:{i.code}", invoice=inv.number, line_no=i.line_no,
-                                    kind=FindingKind.FORMAT, source="validation", decided_by="rule",
-                                    action="flag" if not i.fatal else "reject", rationale=i.message,
-                                    evidence=[Evidence(source="rule", text=i.message)]))
+            findings.append(
+                Finding(
+                    id=f"{inv.number}:{i.line_no}:format:{i.code}",
+                    invoice=inv.number,
+                    line_no=i.line_no,
+                    kind=FindingKind.FORMAT,
+                    source="validation",
+                    decided_by="rule",
+                    action="flag" if not i.fatal else "reject",
+                    rationale=i.message,
+                    evidence=[Evidence(source="rule", text=i.message)],
+                )
+            )
     tenant = ref.tenant_for_client(inv.client_id)
     matter = ref.matters.get(inv.client_matter_id)
     if tenant is None:
@@ -42,21 +51,57 @@ def validate(inv: Invoice, ref: Reference) -> Validation:
         if li.is_fee:
             tk = firm.timekeeper(li.timekeeper_id) if firm else None
             if tk is None or li.timekeeper_id not in matter.authorized_timekeepers:
-                findings.append(Finding(
-                    id=f"{inv.number}:{li.line_no}:unauthorized", invoice=inv.number, line_no=li.line_no, kind=FindingKind.UNAUTHORIZED,
-                    source="validation", decided_by="rule", action="reject", adjustment=-li.total,
-                    rationale=f"Timekeeper {li.timekeeper_id} is not authorised on matter {matter.id}.",
-                    evidence=[Evidence(source="rule", text=f"authorised timekeepers: {len(matter.authorized_timekeepers)}")]))
+                findings.append(
+                    Finding(
+                        id=f"{inv.number}:{li.line_no}:unauthorized",
+                        invoice=inv.number,
+                        line_no=li.line_no,
+                        kind=FindingKind.UNAUTHORIZED,
+                        source="validation",
+                        decided_by="rule",
+                        action="reject",
+                        adjustment=-li.total,
+                        rationale=f"Timekeeper {li.timekeeper_id} is not authorised on matter {matter.id}.",
+                        evidence=[Evidence(source="rule", text=f"authorised timekeepers: {len(matter.authorized_timekeepers)}")],
+                    )
+                )
             if li.task_code not in matter.authorized_task_codes:
-                findings.append(Finding(id=f"{inv.number}:{li.line_no}:format:task_code", invoice=inv.number, line_no=li.line_no,
-                                        kind=FindingKind.FORMAT, source="validation", decided_by="rule", action="flag",
-                                        rationale=f"Task code {li.task_code} is not authorised for this matter."))
+                findings.append(
+                    Finding(
+                        id=f"{inv.number}:{li.line_no}:format:task_code",
+                        invoice=inv.number,
+                        line_no=li.line_no,
+                        kind=FindingKind.FORMAT,
+                        source="validation",
+                        decided_by="rule",
+                        action="flag",
+                        rationale=f"Task code {li.task_code} is not authorised for this matter.",
+                    )
+                )
             if li.activity_code and li.activity_code not in ACTIVITY_CODES:
-                findings.append(Finding(id=f"{inv.number}:{li.line_no}:format:activity_code", invoice=inv.number, line_no=li.line_no,
-                                        kind=FindingKind.FORMAT, source="validation", decided_by="rule", action="flag",
-                                        rationale=f"Activity code {li.activity_code} is not a UTBMS activity code."))
+                findings.append(
+                    Finding(
+                        id=f"{inv.number}:{li.line_no}:format:activity_code",
+                        invoice=inv.number,
+                        line_no=li.line_no,
+                        kind=FindingKind.FORMAT,
+                        source="validation",
+                        decided_by="rule",
+                        action="flag",
+                        rationale=f"Activity code {li.activity_code} is not a UTBMS activity code.",
+                    )
+                )
         elif li.is_expense and li.expense_code not in matter.authorized_expense_codes:
-            findings.append(Finding(id=f"{inv.number}:{li.line_no}:format:expense_code", invoice=inv.number, line_no=li.line_no,
-                                    kind=FindingKind.FORMAT, source="validation", decided_by="rule", action="flag",
-                                    rationale=f"Expense code {li.expense_code} is not authorised for this matter."))
+            findings.append(
+                Finding(
+                    id=f"{inv.number}:{li.line_no}:format:expense_code",
+                    invoice=inv.number,
+                    line_no=li.line_no,
+                    kind=FindingKind.FORMAT,
+                    source="validation",
+                    decided_by="rule",
+                    action="flag",
+                    rationale=f"Expense code {li.expense_code} is not authorised for this matter.",
+                )
+            )
     return Validation(fatal, findings, matter)

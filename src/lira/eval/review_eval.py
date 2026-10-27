@@ -50,8 +50,11 @@ async def run_reviews(deps: ReviewDeps, files: list[Path], spend: dict[str, Deci
     from lira import ledes
 
     spend = spend if spend is not None else defaultdict(lambda: ZERO)
-    graph = build_review_graph(ReviewDeps(deps.ref, deps.rules, deps.nlp, deps.router, deps.index,
-                                          spend_before=lambda inv: spend[inv.client_matter_id], human="skip"))
+    graph = build_review_graph(
+        ReviewDeps(
+            deps.ref, deps.rules, deps.nlp, deps.router, deps.index, spend_before=lambda inv: spend[inv.client_matter_id], human="skip"
+        )
+    )
     runs: list[Run] = []
     parsed = sorted(((ledes.parse(f.read_text()), f) for f in files), key=lambda x: (x[0].period_start or x[0].date, x[0].number))
     for inv, f in parsed:
@@ -72,8 +75,9 @@ def _r(x: float | None) -> float | None:
     return None if x is None else round(x, 4)
 
 
-def score(runs: list[Run], truth_lines: dict[tuple[str, str], dict[str, Any]], truth_invoices: dict[str, dict[str, Any]],
-          deps: ReviewDeps) -> dict[str, Any]:
+def score(
+    runs: list[Run], truth_lines: dict[tuple[str, str], dict[str, Any]], truth_invoices: dict[str, dict[str, Any]], deps: ReviewDeps
+) -> dict[str, Any]:
     auto_kinds = set(config.load("review")["auto_apply"])
     per_kind: dict[str, dict[str, int]] = defaultdict(lambda: {"tp": 0, "fp": 0, "fn": 0})
     auto_wrong_money = ZERO
@@ -135,9 +139,16 @@ def score(runs: list[Run], truth_lines: dict[tuple[str, str], dict[str, Any]], t
             money_truth += -exp
             if a < exp:  # took more than a careful reviewer would
                 auto_wrong_money += exp - a
-                auto_lines_wrong.append({"invoice": inv.number, "line": li.line_no, "auto": str(a), "expected": str(exp),
-                                         "kinds": [f.kind.value for f in found.get(li.line_no, {}).values() if f.status == "auto_applied"],
-                                         "truth": sorted({k["kind"] for k in t["kinds"]})})
+                auto_lines_wrong.append(
+                    {
+                        "invoice": inv.number,
+                        "line": li.line_no,
+                        "auto": str(a),
+                        "expected": str(exp),
+                        "kinds": [f.kind.value for f in found.get(li.line_no, {}).values() if f.status == "auto_applied"],
+                        "truth": sorted({k["kind"] for k in t["kinds"]}),
+                    }
+                )
         # money if every proposal is accepted, and if only correct proposals are accepted
         for policy in ("all", "oracle"):
             adj = _settle_with(run, deps, policy, truth_lines)
@@ -152,7 +163,8 @@ def score(runs: list[Run], truth_lines: dict[tuple[str, str], dict[str, Any]], t
                     money_oracle_wrong += max(ZERO, exp - a)
         ti = truth_invoices[inv.number]
         mine_dispute = bool(auto_adj and any(v < 0 for v in auto_adj.values())) or any(
-            f.status == "proposed" and (f.adjustment < 0 or f.kind in (FindingKind.DEADLINE,)) for f in run.findings)
+            f.status == "proposed" and (f.adjustment < 0 or f.kind in (FindingKind.DEADLINE,)) for f in run.findings
+        )
         key = ("t" if mine_dispute == ti["dispute"] else "f") + ("p" if mine_dispute else "n")
         disputes[key] += 1
     kinds = {k: _pr(**v) | {"decided_by": "code" if k in auto_kinds else "person"} for k, v in sorted(per_kind.items())}
@@ -173,18 +185,26 @@ def score(runs: list[Run], truth_lines: dict[tuple[str, str], dict[str, Any]], t
         },
         "money": {
             "truth_savings": str(money(money_truth)),
-            "accept_all_proposals": {"captured": str(money(money_all)), "captured_share": _r(float(money_all / money_truth) if money_truth else None),
-                                     "taken_wrongly": str(money(money_all_wrong))},
-            "accept_correct_proposals": {"captured": str(money(money_oracle)),
-                                         "captured_share": _r(float(money_oracle / money_truth) if money_truth else None),
-                                         "taken_wrongly": str(money(money_oracle_wrong))},
+            "accept_all_proposals": {
+                "captured": str(money(money_all)),
+                "captured_share": _r(float(money_all / money_truth) if money_truth else None),
+                "taken_wrongly": str(money(money_all_wrong)),
+            },
+            "accept_correct_proposals": {
+                "captured": str(money(money_oracle)),
+                "captured_share": _r(float(money_oracle / money_truth) if money_truth else None),
+                "taken_wrongly": str(money(money_oracle_wrong)),
+            },
         },
         "judgement": judgement,
         "kinds": kinds,
         "invoice_dispute": disputes | {"accuracy": _r((disputes["tp"] + disputes["tn"]) / max(1, n))},
         "injection": injection,
-        "model_outputs": {"decisions": model_decisions, "dropped_by_verifier": dropped,
-                          "dropped_share": _r(dropped / model_decisions if model_decisions else None)},
+        "model_outputs": {
+            "decisions": model_decisions,
+            "dropped_by_verifier": dropped,
+            "dropped_share": _r(dropped / model_decisions if model_decisions else None),
+        },
         "reviewer_queue_lines_per_invoice": _r(queue_lines / max(1, n)),
     }
 
@@ -210,7 +230,17 @@ def _settle_with(run: Run, deps: ReviewDeps, policy: str, truth: dict[tuple[str,
             factor = (-f.adjustment / li.total) if f.action == "reduce" and li.total else None
             accepted[f.line_no].append(Accepted(f.kind, f.action, factor))
     pre = {f.line_no: f.kind for f in run.findings if f.source == "validation" and f.action == "reject" and f.line_no}
-    s = settle(inv, matter, firm, deps.ref, _rules_at(deps.rules, matter.tenant), _signals(run.state["analysis"]),
-               Decimal(run.state.get("spent_before", "0")), accepted=dict(accepted), pre_rejected=pre, dismissed=dismissed,
-               confirmed=confirmed)
+    s = settle(
+        inv,
+        matter,
+        firm,
+        deps.ref,
+        _rules_at(deps.rules, matter.tenant),
+        _signals(run.state["analysis"]),
+        Decimal(run.state.get("spent_before", "0")),
+        accepted=dict(accepted),
+        pre_rejected=pre,
+        dismissed=dismissed,
+        confirmed=confirmed,
+    )
     return s.adjustments

@@ -35,8 +35,9 @@ def _message(m: Message) -> dict[str, Any]:
         else:
             import json
 
-            out.append({"type": "tool_result", "tool_use_id": b.tool_use_id, "content": json.dumps(b.content, default=str),
-                        "is_error": b.is_error})
+            out.append(
+                {"type": "tool_result", "tool_use_id": b.tool_use_id, "content": json.dumps(b.content, default=str), "is_error": b.is_error}
+            )
     return {"role": m.role, "content": out}
 
 
@@ -57,8 +58,9 @@ class AnthropicProvider:
         try:
             r = await self.client.messages.create(**to_messages_api(req, model))
         except anthropic.APIStatusError as e:
-            raise ProviderError(f"anthropic {e.status_code}", retryable=e.status_code in (408, 409, 429, 500, 502, 503, 529),
-                                code=f"http_{e.status_code}") from e
+            raise ProviderError(
+                f"anthropic {e.status_code}", retryable=e.status_code in (408, 409, 429, 500, 502, 503, 529), code=f"http_{e.status_code}"
+            ) from e
         except anthropic.APIConnectionError as e:
             raise ProviderError("anthropic connection", retryable=True, code="transport") from e
         blocks: list[Block] = []
@@ -67,5 +69,11 @@ class AnthropicProvider:
                 blocks.append(Block.t(c.text))
             elif c.type == "tool_use":
                 blocks.append(Block("tool_use", tool_use_id=c.id, name=c.name, input=dict(c.input)))
-        return ModelResponse(blocks, r.stop_reason or "end_turn", Usage(r.usage.input_tokens, r.usage.output_tokens), model,
-                             "anthropic", (time.perf_counter() - t0) * 1000)
+        return ModelResponse(
+            blocks,
+            r.stop_reason or "end_turn",
+            Usage(r.usage.input_tokens, r.usage.output_tokens),
+            model,
+            "anthropic",
+            (time.perf_counter() - t0) * 1000,
+        )

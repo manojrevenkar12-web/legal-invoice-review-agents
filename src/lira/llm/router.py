@@ -10,7 +10,7 @@ import asyncio
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 from pydantic import ValidationError
 
@@ -56,7 +56,7 @@ class Breaker:
 
 
 @dataclass
-class Routed(Generic[T]):
+class Routed[T]:
     response: ModelResponse
     value: T
     model: ModelInfo
@@ -81,15 +81,31 @@ class Budget:
 
 
 class ModelRouter:
-    def __init__(self, providers: dict[str, Provider], settings: dict[str, Any] | None = None,
-                 clock: Callable[[], float] = time.monotonic, sleep: Callable[[float], Any] = asyncio.sleep):
+    def __init__(
+        self,
+        providers: dict[str, Provider],
+        settings: dict[str, Any] | None = None,
+        clock: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], Any] = asyncio.sleep,
+    ):
         cfg = settings or config.load("models")
+
         def price(v: dict[str, Any], key: str) -> float:
             src = cfg["models"].get(v.get("price_as", ""), v)
             return float(src.get(key, 0))
 
-        self.models = {k: ModelInfo(k, v["provider"], v["model_id"], v.get("region_group", ""), v.get("privacy", ""),
-                                    price(v, "price_in"), price(v, "price_out")) for k, v in cfg["models"].items()}
+        self.models = {
+            k: ModelInfo(
+                k,
+                v["provider"],
+                v["model_id"],
+                v.get("region_group", ""),
+                v.get("privacy", ""),
+                price(v, "price_in"),
+                price(v, "price_out"),
+            )
+            for k, v in cfg["models"].items()
+        }
         self.tasks: dict[str, list[str]] = cfg["tasks"]
         self.policies: dict[str, list[str]] = cfg.get("tenant_policies", {})
         self.routing = cfg["routing"]
@@ -127,15 +143,17 @@ class ModelRouter:
             if budget is not None:
                 est = self._estimate(req, m)
                 if budget.spent_usd + est > budget.limit_usd:
-                    raise BudgetExceeded(req.task, errors + [f"budget {budget.limit_usd} USD reached"])
+                    raise BudgetExceeded(req.task, [*errors, f"budget {budget.limit_usd} USD reached"])
             provider = self.providers[m.provider]
             messages = list(req.messages)
             repairs = 0
             for attempt in range(int(self.routing["attempts_per_model"])):
                 attempts += 1
                 r = ModelRequest(**{**req.__dict__, "messages": messages})
-                with span(f"model.{req.task}", **model_call_attributes(req.task, m.model_id, m.provider, req.prompt_id,
-                                                                        req.prompt_version, req.tenant)) as s:
+                with span(
+                    f"model.{req.task}",
+                    **model_call_attributes(req.task, m.model_id, m.provider, req.prompt_id, req.prompt_version, req.tenant),
+                ) as s:
                     try:
                         resp = await asyncio.wait_for(provider.generate(r, m.model_id), timeout=float(self.routing["timeout_seconds"]))
                     except (ProviderError, TimeoutError) as e:
@@ -169,8 +187,14 @@ class ModelRouter:
                         self._fail(m.key)
                         break
                     self._ok(m.key)
-                    metrics.emit({"task": req.task, "model": m.key, "outcome": "ok"}, calls=1, cost_usd=cost,
-                                 tokens_in=resp.usage.input_tokens, tokens_out=resp.usage.output_tokens, latency_ms=resp.latency_ms)
+                    metrics.emit(
+                        {"task": req.task, "model": m.key, "outcome": "ok"},
+                        calls=1,
+                        cost_usd=cost,
+                        tokens_in=resp.usage.input_tokens,
+                        tokens_out=resp.usage.output_tokens,
+                        latency_ms=resp.latency_ms,
+                    )
                     return Routed(resp, value, m, attempts, cost, resp.usage)
         raise Unavailable(req.task, errors)
 
@@ -185,7 +209,9 @@ class ModelRouter:
         self._breaker(key).failures = 0
 
     def _estimate(self, req: ModelRequest, m: ModelInfo) -> float:
-        chars = len(req.system) + sum(len(b.text) + len(str(b.input)) + len(str(b.content or "")) for msg in req.messages for b in msg.content)
+        chars = len(req.system) + sum(
+            len(b.text) + len(str(b.input)) + len(str(b.content or "")) for msg in req.messages for b in msg.content
+        )
         return m.cost(Usage(chars // 4, req.max_tokens // 4))
 
 
@@ -196,8 +222,13 @@ def _repair_turn(resp: ModelResponse, req: ModelRequest, error: str) -> list[Mes
     if uses:
         return [
             Message("assistant", uses),
-            Message("user", [Block("tool_result", tool_use_id=u.tool_use_id, content={"error": error[:500]}, is_error=True) for u in uses]
-                    + [Block.t(f"The call failed validation: {error[:500]}. Call {tool} again with corrected input.")]),
+            Message(
+                "user",
+                [Block("tool_result", tool_use_id=u.tool_use_id, content={"error": error[:500]}, is_error=True) for u in uses]
+                + [Block.t(f"The call failed validation: {error[:500]}. Call {tool} again with corrected input.")],
+            ),
         ]
-    return [Message("assistant", resp.content or [Block.t("(no output)")]),
-            Message("user", [Block.t(f"You must call {tool}. Validation error: {error[:500]}")])]
+    return [
+        Message("assistant", resp.content or [Block.t("(no output)")]),
+        Message("user", [Block.t(f"You must call {tool}. Validation error: {error[:500]}")]),
+    ]

@@ -78,8 +78,12 @@ async def run_all(data: Path | None = None, reports: Path | None = None, quick: 
     files = live_files(data, first_live)
     if quick:
         files = files[::3]
-    report: dict[str, Any] = {"generated_at": date.today().isoformat(), "model": "simulated", "live_from": first_live,
-                              "invoices_reviewed": len(files)}
+    report: dict[str, Any] = {
+        "generated_at": date.today().isoformat(),
+        "model": "simulated",
+        "live_from": first_live,
+        "invoices_reviewed": len(files),
+    }
 
     # ---- golden
     deps = ReviewDeps(ctx.ref, ctx.rules, ctx.nlp, router_with({}), ctx.index)
@@ -94,10 +98,24 @@ async def run_all(data: Path | None = None, reports: Path | None = None, quick: 
         d = ReviewDeps(ctx.ref, ctx.rules, ctx.nlp, router_with(faults), ctx.index)
         r = await review_eval.run_reviews(d, files)
         s = review_eval.score(r, truth_lines, truth_invoices, d) | safety(r)
-        report[name] = {"faults": faults, **{k2: s[k2] for k2 in ("auto_applied", "money", "judgement", "injection", "model_outputs",
-                                                                  "degraded_invoices", "model_findings_shown",
-                                                                  "ungrounded_model_findings_shown", "invoices_not_reviewed",
-                                                                  "reviewer_queue_lines_per_invoice")}}
+        report[name] = {
+            "faults": faults,
+            **{
+                k2: s[k2]
+                for k2 in (
+                    "auto_applied",
+                    "money",
+                    "judgement",
+                    "injection",
+                    "model_outputs",
+                    "degraded_invoices",
+                    "model_findings_shown",
+                    "ungrounded_model_findings_shown",
+                    "invoices_not_reviewed",
+                    "reviewer_queue_lines_per_invoice",
+                )
+            },
+        }
         report[name]["auto_applied"].pop("lines_wrong", None)
 
     # ---- guideline compilation (clean and with a model that invents rules)
@@ -105,8 +123,10 @@ async def run_all(data: Path | None = None, reports: Path | None = None, quick: 
     report["compile"] = await compile_eval.evaluate(docs, answers, router_with({}))
     bad = await compile_eval.evaluate(docs, answers, router_with({"hallucinate": 1.0, "fabricate_quote": 1.0}))
     accepted_fabrications = sum(len(d["extra"]) + len(d["wrong_values"]) for d in bad["documents"].values())
-    report["compile_faults"] = {"rejected_by_verifier": bad["totals"]["rejected_by_verifier"],
-                                "fabricated_rules_accepted": accepted_fabrications}
+    report["compile_faults"] = {
+        "rejected_by_verifier": bad["totals"]["rejected_by_verifier"],
+        "fabricated_rules_accepted": accepted_fabrications,
+    }
 
     # ---- retrieval and Q&A
     report["retrieval"] = retrieval_eval.retrieval_only(ctx.index, answers)
@@ -116,19 +136,47 @@ async def run_all(data: Path | None = None, reports: Path | None = None, quick: 
     rows = []
     for p in sorted((data / "world" / "invoices").glob("*/*/*.ledes")):
         inv = ledes.parse(p.read_text())
-        rows += [{"firm": inv.law_firm_id, "month": f"{li.date:%Y-%m}", "description": li.description, "activity_code": li.activity_code,
-                  "timekeeper_class": li.timekeeper_class, "units": float(li.units)} for li in inv.lines if li.is_fee]
+        rows += [
+            {
+                "firm": inv.law_firm_id,
+                "month": f"{li.date:%Y-%m}",
+                "description": li.description,
+                "activity_code": li.activity_code,
+                "timekeeper_class": li.timekeeper_class,
+                "units": float(li.units),
+            }
+            for li in inv.lines
+            if li.is_fee
+        ]
     ref_first = f"{(k - 2) // 12}-{(k - 2) % 12 + 1:02d}"
     ref_last = f"{(k - 1) // 12}-{(k - 1) % 12 + 1:02d}"
     drift = monitor(rows, ctx.nlp, (ref_first, ref_last), emit=False)
     injected = json.loads((data / "truth" / "drift.json").read_text())
-    expected = {(firm, w["month"]) for firm, start in injected.items() for w in drift["windows"] if w["firm"] == firm and w["month"] >= start}
+    expected = {
+        (firm, w["month"]) for firm, start in injected.items() for w in drift["windows"] if w["firm"] == firm and w["month"] >= start
+    }
     alerts = {(w["firm"], w["month"]) for w in drift["alerts"]}
-    report["drift"] = {"injected": sorted(map(list, expected)), "alerts": sorted(map(list, alerts)),
-                       "injected_drift_detected": round(len(expected & alerts) / max(1, len(expected)), 4),
-                       "other_alerts": [w | {"psi": {k3: v for k3, v in w["psi"].items() if v >= 0.25}} for w in drift["alerts"]
-                                        if (w["firm"], w["month"]) not in expected],
-                       "windows": len(drift["windows"])}
+    report["drift"] = {
+        "injected": sorted(map(list, expected)),
+        "alerts": sorted(map(list, alerts)),
+        "injected_drift_detected": round(len(expected & alerts) / max(1, len(expected)), 4),
+        "other_alerts": [
+            w | {"psi": {k3: v for k3, v in w["psi"].items() if v >= 0.25}}
+            for w in drift["alerts"]
+            if (w["firm"], w["month"]) not in expected
+        ],
+        "windows": [
+            {
+                "firm": w["firm"],
+                "month": w["month"],
+                "lines": w["lines"],
+                "max_psi": w["max_alerting_psi"],
+                "alert": w["alert"],
+                "drivers": w["drivers"],
+            }
+            for w in drift["windows"]
+        ],
+    }
     report["drift"]["quality_by_firm"] = _quality_by_firm(runs, truth_lines, injected)
 
     # ---- appeals
@@ -143,13 +191,19 @@ async def run_all(data: Path | None = None, reports: Path | None = None, quick: 
     items = [json.loads(x) for x in items_path.read_text().splitlines() if x.strip()]
     verdicts, bias = await judge.run_judge(router_with({}), items)
     a, b = judge.load_labels(ann / "annotator_a.jsonl"), judge.load_labels(ann / "annotator_b.jsonl")
-    report["judge"] = {"items": len(items), **bias, "annotations": bool(a and b),
-                       "agreement": judge.agreement(items, a, b, verdicts) if a and b else None,
-                       "judge_vs_answer_key": _judge_vs_truth(items, verdicts, truth_lines)}
+    report["judge"] = {
+        "items": len(items),
+        **bias,
+        "annotations": bool(a and b),
+        "agreement": judge.agreement(items, a, b, verdicts) if a and b else None,
+        "judge_vs_answer_key": _judge_vs_truth(items, verdicts, truth_lines),
+    }
 
     # ---- cost
-    report["cost"] = {"model_cost_usd_per_invoice": report["golden"]["model_cost_usd_per_invoice"],
-                      "note": "simulated model: token counts are estimated and priced at the configured Bedrock rates"}
+    report["cost"] = {
+        "model_cost_usd_per_invoice": report["golden"]["model_cost_usd_per_invoice"],
+        "note": "simulated model: token counts are estimated and priced at the configured Bedrock rates",
+    }
     report["prompts"] = {p.id: {"version": p.version, "sha256": p.sha256[:16]} for p in all_prompts()}
 
     # ---- Bedrock Evaluations exports
@@ -176,8 +230,11 @@ def _quality_by_firm(runs: list[review_eval.Run], truth: dict[tuple[str, str], d
                 continue
             found = {(f.line_no, f.kind.value) for f in run.findings}
             for li in run.invoice.lines:
-                for kk in {x["kind"] for x in truth[(run.invoice.number, li.line_no)]["kinds"]} & {"block_billing", "vague_description",
-                                                                                                    "clerical_work"}:
+                for kk in {x["kind"] for x in truth[(run.invoice.number, li.line_no)]["kinds"]} & {
+                    "block_billing",
+                    "vague_description",
+                    "clerical_work",
+                }:
                     key = "after" if f"{li.date:%Y-%m}" >= start else "before"
                     rows[key][0] += (li.line_no, kk) in found
                     rows[key][1] += 1
@@ -185,7 +242,9 @@ def _quality_by_firm(runs: list[review_eval.Run], truth: dict[tuple[str, str], d
     return out
 
 
-def _judge_vs_truth(items: list[dict[str, Any]], verdicts: dict[str, dict[str, str]], truth: dict[tuple[str, str], dict[str, Any]]) -> dict[str, Any]:
+def _judge_vs_truth(
+    items: list[dict[str, Any]], verdicts: dict[str, dict[str, str]], truth: dict[tuple[str, str], dict[str, Any]]
+) -> dict[str, Any]:
     agree = n = 0
     for it in items:
         v = verdicts.get(it["id"])
@@ -220,8 +279,19 @@ def _record_prompt_runs(reports: Path, report: dict[str, Any]) -> None:
         for p in all_prompts():
             if (p.id, p.version, p.sha256) in seen:
                 continue
-            fh.write(json.dumps({"prompt_id": p.id, "version": p.version, "sha256": p.sha256, "date": report["generated_at"],
-                                 "model": report["model"], "metrics": metric.get(p.id, {})}) + "\n")
+            fh.write(
+                json.dumps(
+                    {
+                        "prompt_id": p.id,
+                        "version": p.version,
+                        "sha256": p.sha256,
+                        "date": report["generated_at"],
+                        "model": report["model"],
+                        "metrics": metric.get(p.id, {}),
+                    }
+                )
+                + "\n"
+            )
 
 
 def _fmt(x: Any) -> str:
@@ -283,9 +353,39 @@ def summary(r: dict[str, Any]) -> str:
     ]
     if r["judge"].get("agreement"):
         ag = r["judge"]["agreement"]
-        lines += ["", "| Criterion | Annotators kappa | Judge vs adjudicated kappa |", "| --- | --- | --- |",
-                  *[f"| {c} | {ag[c]['annotators_kappa']} | {ag[c]['judge_vs_gold_kappa']} |" for c in judge.CRITERIA]]
+        lines += [
+            "",
+            "| Criterion | Annotators kappa | Judge vs adjudicated kappa |",
+            "| --- | --- | --- |",
+            *[f"| {c} | {ag[c]['annotators_kappa']} | {ag[c]['judge_vs_gold_kappa']} |" for c in judge.CRITERIA],
+        ]
+    lines += _heldout_lines()
     return "\n".join(lines) + "\n"
+
+
+def _heldout_lines() -> list[str]:
+    """First runs of the blind held-out sets, quoted as recorded (they are never re-run into this table)."""
+    root = config.reports_dir() / "heldout"
+    runs = [json.loads(p.read_text()) for p in sorted(root.glob("*/first_run.json"))] if root.exists() else []
+    if not runs:
+        return []
+    out = ["", "## Blind held-out sets (first runs, as recorded)", ""]
+    for h in runs:
+        if h["kind"] == "guidelines":
+            s = h["scores"]
+            out.append(
+                f"- `{h['set']}` ({h['status']}, {h['ran_at'][:10]}): {s['found']} of {s['rules_expected']} rules found, "
+                f"precision {_fmt(s['precision'])}, {len(s['wrong_values'])} wrong values, "
+                f"{len(s['rules_from_non_rule_clauses'])} rules taken from non-rule clauses."
+            )
+        else:
+            pq = h["per_question"]
+            parts = ", ".join(f"{q} {_fmt(v['precision'])} / {_fmt(v['recall'])}" for q, v in pq.items())
+            out.append(
+                f"- `{h['set']}` ({h['status']}, {h['ran_at'][:10]}): {h['entries']} entries, agreement with the writer's labels "
+                f"{_fmt(h['exact_agreement'])}; precision / recall {parts}."
+            )
+    return out
 
 
 def _d(x: Any) -> Decimal:

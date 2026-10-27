@@ -1,18 +1,20 @@
 """lira: the command line.
 
-    lira run [--quick]          simulate, train, compile and approve guidelines, evaluate, gate
-    lira sim                    build the simulated world (data/world, data/truth)
-    lira train                  train the classical NLP models on review history (models/nlp)
-    lira guidelines compile     compile every guideline document into a draft RuleSet (reports/guidelines)
-    lira guidelines approve     approve a draft (legal operations), e.g. --tenant kestrel --version 2 --by "A. Weber"
-    lira review FILE            review one LEDES invoice (JSON out); --accept-all to settle it as if every proposal were accepted
-    lira ask --tenant T Q       ask the guidelines a question
-    lira drift                  run the drift monitor over all invoices
-    lira eval [--quick]         run every evaluation (reports/eval)
-    lira gate                   check the reports against config/release.yaml
-    lira prompts lock|check     pin prompt versions / check them against their regression runs
-    lira heldout run SET        run a blind held-out set once and record its first run
-    lira serve                  the API (FastAPI) on :8080
+lira run [--quick]          simulate, train, compile and approve guidelines, evaluate, gate
+lira sim                    build the simulated world (data/world, data/truth)
+lira train                  train the classical NLP models on review history (models/nlp)
+lira guidelines compile     compile every guideline document into a draft RuleSet (reports/guidelines)
+lira guidelines approve     approve a draft (legal operations), e.g. --tenant kestrel --version 2 --by "A. Weber"
+lira review FILE            review one LEDES invoice (JSON out); --accept-all to settle it as if every proposal were accepted
+lira ask --tenant T Q       ask the guidelines a question
+lira drift                  run the drift monitor over all invoices
+lira eval [--quick]         run every evaluation (reports/eval)
+lira gate                   check the reports against config/release.yaml
+lira prompts lock|check     pin prompt versions / check them against their regression runs
+lira heldout run SET        run a blind held-out set once and record its first run
+lira serve                  the API (FastAPI) on :8080
+lira worker                 the review worker (SQS intake when configured, PostgreSQL job queue)
+lira demo                   seed PostgreSQL with the simulated world and serve the API for the console
 """
 
 from __future__ import annotations
@@ -78,14 +80,25 @@ async def _compile(approve_as: str | None, tenant: str | None) -> int:
             existing = rules.get(t, v)
             if existing is None or existing.status != "approved" or existing.document_sha256 != rep.ruleset.document_sha256:
                 rules.save(rep.ruleset)
-            (out / f"{t}-v{v}.json").write_text(json.dumps({
-                "rules": [r.model_dump(mode="json") for r in rep.ruleset.rules], "rejected": rep.rejected,
-                "disagreements_with_patterns": rep.disagreements, "changes_from_previous_version": rep.changes,
-                "model": rep.model}, indent=2, default=str))
+            (out / f"{t}-v{v}.json").write_text(
+                json.dumps(
+                    {
+                        "rules": [r.model_dump(mode="json") for r in rep.ruleset.rules],
+                        "rejected": rep.rejected,
+                        "disagreements_with_patterns": rep.disagreements,
+                        "changes_from_previous_version": rep.changes,
+                        "model": rep.model,
+                    },
+                    indent=2,
+                    default=str,
+                )
+            )
             if approve_as:
                 rules.approve(t, v, approve_as)
-            print(f"{t} v{v}: {len(rep.ruleset.rules)} rules, {len(rep.rejected)} rejected by the verifier, "
-                  f"{len(rep.disagreements)} differences from the pattern extractor, {len(rep.changes)} changes from v{v - 1 if v > 1 else '-'}")
+            print(
+                f"{t} v{v}: {len(rep.ruleset.rules)} rules, {len(rep.rejected)} rejected by the verifier, "
+                f"{len(rep.disagreements)} differences from the pattern extractor, {len(rep.changes)} changes from v{v - 1 if v > 1 else '-'}"
+            )
             prev = rules.get(t, v)
     return 0
 
@@ -110,11 +123,15 @@ async def _review(path: Path, accept_all: bool) -> dict[str, Any]:
     ctx = Context.load()
     g = build_review_graph(ReviewDeps(ctx.ref, ctx.rules, ctx.nlp, ctx.router, ctx.index), checkpointer=InMemorySaver())
     cfg = {"configurable": {"thread_id": path.stem}}
-    state = await g.ainvoke({"ledes_text": path.read_text()}, cfg)
+    text = await asyncio.to_thread(path.read_text)
+    state = await g.ainvoke({"ledes_text": text}, cfg)
     if accept_all and "__interrupt__" in state:
         pending = state["__interrupt__"][0].value["pending"]
-        state = await g.ainvoke(Command(resume={fid: {"decision": "accept", "by": "cli"} for fid in pending}), cfg)
-    return {k: v for k, v in state.items() if k in ("status", "fatal", "findings", "adjustments", "total_adjustment", "degraded", "dropped")}
+        await g.ainvoke(Command(resume={fid: {"decision": "accept", "by": "cli"} for fid in pending}), cfg)
+    state = dict((await g.aget_state(cfg)).values)
+    return {
+        k: v for k, v in state.items() if k in ("status", "fatal", "findings", "adjustments", "total_adjustment", "degraded", "dropped")
+    }
 
 
 def cmd_review(a: argparse.Namespace) -> int:
@@ -127,8 +144,9 @@ def cmd_ask(a: argparse.Namespace) -> int:
     from lira.retrieval.qa import ask
 
     ctx = Context.load()
-    r = asyncio.run(ask(ctx.index, ctx.router, a.tenant, ctx.ref.tenants[a.tenant].name, a.question,
-                        date.fromisoformat(a.on) if a.on else None))
+    r = asyncio.run(
+        ask(ctx.index, ctx.router, a.tenant, ctx.ref.tenants[a.tenant].name, a.question, date.fromisoformat(a.on) if a.on else None)
+    )
     _json(r.__dict__)
     return 0
 
@@ -138,12 +156,22 @@ def cmd_drift(_: argparse.Namespace) -> int:
     from lira.monitor.drift import monitor
     from lira.nlp.models import NlpModels
 
-    rows = []
+    rows: list[dict[str, Any]] = []
     for p in sorted((config.data_dir() / "world" / "invoices").glob("*/*/*.ledes")):
         inv = ledes.parse(p.read_text())
-        rows += [{"firm": inv.law_firm_id, "month": f"{li.date:%Y-%m}", "description": li.description, "activity_code": li.activity_code,
-                  "timekeeper_class": li.timekeeper_class, "units": float(li.units)} for li in inv.lines if li.is_fee]
-    months = sorted({r["month"] for r in rows})
+        rows += [
+            {
+                "firm": inv.law_firm_id,
+                "month": f"{li.date:%Y-%m}",
+                "description": li.description,
+                "activity_code": li.activity_code,
+                "timekeeper_class": li.timekeeper_class,
+                "units": float(li.units),
+            }
+            for li in inv.lines
+            if li.is_fee
+        ]
+    months: list[str] = sorted({str(r["month"]) for r in rows})
     world = json.loads((config.data_dir() / "world" / "world.json").read_text())
     h = int(world["history_months"])
     _json(monitor(rows, NlpModels.load(config.models_dir() / "nlp"), (months[h - 2], months[h - 1]))["alerts"])
@@ -191,6 +219,65 @@ def cmd_serve(a: argparse.Namespace) -> int:
     import uvicorn
 
     uvicorn.run("lira.service.app:create_app", factory=True, host=a.host, port=a.port)
+    return 0
+
+
+def cmd_demo(a: argparse.Namespace) -> int:
+    """Seed the database with the simulated world, then serve the API for the console."""
+    import os
+
+    import uvicorn
+
+    async def _seed() -> dict[str, Any]:
+        from lira.service.app import build_services
+        from lira.service.demo import seed
+
+        svc, cp = await build_services()
+        out = await seed(svc)
+        await svc.pool.close()
+        await cp.close()
+        return out
+
+    _json(asyncio.run(_seed()))
+    if a.seed_only:
+        return 0
+    os.environ.setdefault("LIRA_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+    uvicorn.run("lira.service.app:create_app", factory=True, host=a.host, port=a.port)
+    return 0
+
+
+def cmd_worker(_: argparse.Namespace) -> int:
+    """Review worker: consume the SQS intake queue when configured, and run queued jobs from PostgreSQL."""
+    import os
+
+    async def _loop() -> None:
+        from lira.service.app import build_services
+
+        svc, cp = await build_services()
+        worker = None
+        if os.environ.get("LIRA_REVIEW_QUEUE_URL"):
+            import boto3
+
+            from lira.aws.ingest import SqsWorker
+
+            worker = SqsWorker(
+                boto3.client("sqs"),
+                boto3.client("s3"),
+                os.environ["LIRA_REVIEW_QUEUE_URL"],
+                lambda t, text, actor: svc.receive(t, text, actor),
+                svc.run_jobs,
+            )
+        try:
+            while True:
+                n = await worker.poll_once() if worker else 0
+                n += await svc.run_jobs()
+                if not n and not worker:
+                    await asyncio.sleep(1.0)
+        finally:
+            await svc.pool.close()
+            await cp.close()
+
+    asyncio.run(_loop())
     return 0
 
 
@@ -242,6 +329,12 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--host", default="0.0.0.0")
     s.add_argument("--port", type=int, default=8080)
     s.set_defaults(fn=cmd_serve)
+    sub.add_parser("worker").set_defaults(fn=cmd_worker)
+    d = sub.add_parser("demo")
+    d.add_argument("--host", default="127.0.0.1")
+    d.add_argument("--port", type=int, default=8080)
+    d.add_argument("--seed-only", action="store_true")
+    d.set_defaults(fn=cmd_demo)
     rn = sub.add_parser("run")
     rn.add_argument("--quick", action="store_true")
     rn.set_defaults(fn=cmd_run)

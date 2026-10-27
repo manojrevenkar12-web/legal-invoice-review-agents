@@ -100,5 +100,11 @@ def appeal_for(finding: dict[str, Any], truth_kinds: set[str], rng: np.random.Ge
         intent = str(rng.choice(["dispute_policy", "provide_detail", "accept", "request_info"], p=[0.45, 0.2, 0.2, 0.15]))
         if intent == "provide_detail" and kind != "vague_description":
             intent = "dispute_policy"
-    return {"finding_id": finding["id"], "kind": kind, "line_no": finding["line_no"], "intent": intent, "justified": justified,
-            "message": message(intent, kind, finding["line_no"], rng)}
+    return {
+        "finding_id": finding["id"],
+        "kind": kind,
+        "line_no": finding["line_no"],
+        "intent": intent,
+        "justified": justified,
+        "message": message(intent, kind, finding["line_no"], rng),
+    }

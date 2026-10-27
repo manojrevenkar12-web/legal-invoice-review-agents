@@ -14,8 +14,12 @@ from typing import Any
 
 from lira.utbms import EXPENSE_CODES
 
-ROLE_LABEL = {"summer associate": "summer associates", "law clerk": "law clerks", "first-year associate": "first-year associates",
-              "trainee": "trainees"}
+ROLE_LABEL = {
+    "summer associate": "summer associates",
+    "law clerk": "law clerks",
+    "first-year associate": "first-year associates",
+    "trainee": "trainees",
+}
 
 
 def _money(x: float, cur: str) -> str:
@@ -24,7 +28,7 @@ def _money(x: float, cur: str) -> str:
 
 
 def _pct(f: float) -> str:
-    return f"{int(round(f * 100))}%"
+    return f"{round(f * 100)}%"
 
 
 @dataclass
@@ -65,8 +69,9 @@ def build(tenant: str, name: str, currency: str, style: str, version: int, effec
     def section(title_numbered: str, title_uk: str, title_letters: str) -> list[tuple[str, str]]:
         nonlocal sec
         sec += 1
-        heading = {"numbered": f"{sec}. {title_numbered}", "uk": f"Part {sec} - {title_uk}",
-                   "letters": f"Section {sec}: {title_letters}"}[style]
+        heading = {"numbered": f"{sec}. {title_numbered}", "uk": f"Part {sec} - {title_uk}", "letters": f"Section {sec}: {title_letters}"}[
+            style
+        ]
         clauses: list[tuple[str, str]] = []
         d.sections.append((heading, clauses))
         return clauses
@@ -82,23 +87,32 @@ def build(tenant: str, name: str, currency: str, style: str, version: int, effec
 
     # ---- 1 scope (no rules)
     c = section("Purpose and scope", "Scope and application", "General Provisions")
-    add(c, f"These guidelines apply to all outside counsel engaged by {name} and its affiliates. They form part of every "
-           "engagement letter, and a conflict between an engagement letter and these guidelines is resolved in favour of these guidelines "
-           "unless the engagement letter expressly says otherwise.")
-    add(c, "Counsel must confirm in writing that they have read these guidelines before any work is billed. Questions about "
-           "the guidelines should be addressed to the Legal Operations team before the work is performed.")
-    add(c, "We expect counsel to staff matters efficiently, avoid duplication of effort and keep the responsible in-house lawyer "
-           "informed of significant developments, including any change in the assessment of risk.")
+    add(
+        c,
+        f"These guidelines apply to all outside counsel engaged by {name} and its affiliates. They form part of every "
+        "engagement letter, and a conflict between an engagement letter and these guidelines is resolved in favour of these guidelines "
+        "unless the engagement letter expressly says otherwise.",
+    )
+    add(
+        c,
+        "Counsel must confirm in writing that they have read these guidelines before any work is billed. Questions about "
+        "the guidelines should be addressed to the Legal Operations team before the work is performed.",
+    )
+    add(
+        c,
+        "We expect counsel to staff matters efficiently, avoid duplication of effort and keep the responsible in-house lawyer "
+        "informed of significant developments, including any change in the assessment of risk.",
+    )
 
     # ---- 2 staffing and rates
     c = section("Staffing and rates", "Staffing and hourly rates", "Staffing and Rates")
     rate_text = {
         "numbered": "Only the hourly rates approved in the rate schedule for the matter may be billed. Rates are fixed for the life "
-                    "of the matter; a rate increase is effective only once Legal Operations has approved it in writing.",
+        "of the matter; a rate increase is effective only once Legal Operations has approved it in writing.",
         "uk": "Fees must be charged at the hourly rates agreed for each fee earner on the matter. Any increase in rates requires our "
-              "prior written approval and will not be applied retrospectively.",
+        "prior written approval and will not be applied retrospectively.",
         "letters": "Timekeepers may bill only at the rates approved for them in the matter's rate schedule. Rate increases are not "
-                   "accepted unless approved in advance in writing by the Law Department.",
+        "accepted unless approved in advance in writing by the Law Department.",
     }[style]
     add(c, rate_text, {"kind": "rate_cap"})
     if p.get("nonbillable_roles"):
@@ -111,8 +125,11 @@ def build(tenant: str, name: str, currency: str, style: str, version: int, effec
             "letters": f"The Company will not be charged for work performed by {listed}.",
         }[style]
         add(c, text, {"kind": "nonbillable_role", "roles": roles})
-    add(c, "Counsel must notify us before adding a new timekeeper to a matter. We may decline to pay for time spent bringing "
-           "new team members up to speed on the matter.")
+    add(
+        c,
+        "Counsel must notify us before adding a new timekeeper to a matter. We may decline to pay for time spent bringing "
+        "new team members up to speed on the matter.",
+    )
     if p.get("max_attendees"):
         for ev, n in p["max_attendees"].items():
             n_word = {1: "one", 2: "two", 3: "three"}[n]
@@ -138,7 +155,7 @@ def build(tenant: str, name: str, currency: str, style: str, version: int, effec
     if blk["action"] == "reduce":
         text = {
             "numbered": f"Each time entry must describe a single task with the time spent on it. Block billing (several tasks in one entry) "
-                        f"is not permitted; block-billed entries will be reduced by {_pct(blk['factor'])}.",
+            f"is not permitted; block-billed entries will be reduced by {_pct(blk['factor'])}.",
             "uk": f"Block billing is not acceptable. Where several tasks are recorded in one entry, we will reduce the entry by {_pct(blk['factor'])}.",
             "letters": f"Block billing is prohibited. Any entry that combines multiple tasks will be reduced by {_pct(blk['factor'])}.",
         }[style]
@@ -151,10 +168,10 @@ def build(tenant: str, name: str, currency: str, style: str, version: int, effec
     add(c, text, {"kind": "block_billing", "action": blk["action"], "reduce_factor": blk.get("factor")})
     if p.get("vague"):
         text = {
-            "numbered": "Descriptions must say what was done and why. Vague entries such as \"attention to file\", \"work on matter\" or \"research\" "
-                        "without a subject will be rejected.",
-            "uk": "Narratives must be sufficiently detailed to show the work done. Generic descriptions (for example \"review documents\" or "
-                  "\"work on matter\") will not be paid.",
+            "numbered": 'Descriptions must say what was done and why. Vague entries such as "attention to file", "work on matter" or "research" '
+            "without a subject will be rejected.",
+            "uk": 'Narratives must be sufficiently detailed to show the work done. Generic descriptions (for example "review documents" or '
+            '"work on matter") will not be paid.',
             "letters": "Each entry must contain a specific description of the services. Vague descriptions will be rejected.",
         }[style]
         add(c, text, {"kind": "vague_description"})
@@ -173,11 +190,11 @@ def build(tenant: str, name: str, currency: str, style: str, version: int, effec
     if p.get("clerical"):
         text = {
             "numbered": "Administrative and clerical work is overhead and is not billable, whoever performs it. This includes filing, copying, "
-                        "scanning, scheduling, calendaring, organising files and assembling binders.",
+            "scanning, scheduling, calendaring, organising files and assembling binders.",
             "uk": "Secretarial and administrative tasks, such as photocopying, filing, diary management, scheduling and arranging couriers, "
-                  "are part of your overheads and must not be charged.",
+            "are part of your overheads and must not be charged.",
             "letters": "Clerical tasks (including filing, copying, scheduling, organizing files, labeling and binder preparation) are not billable, "
-                       "even when performed by attorneys or paralegals.",
+            "even when performed by attorneys or paralegals.",
         }[style]
         add(c, text, {"kind": "clerical_work"})
     ic = p.get("internal_conference")
@@ -249,7 +266,10 @@ def build(tenant: str, name: str, currency: str, style: str, version: int, effec
 
     # ---- 7 invoicing
     c = section("Invoicing", "Invoices", "Invoice Submission")
-    add(c, "Invoices must be submitted electronically in LEDES 1998B format with UTBMS task, activity and expense codes, one invoice per matter per month.")
+    add(
+        c,
+        "Invoices must be submitted electronically in LEDES 1998B format with UTBMS task, activity and expense codes, one invoice per matter per month.",
+    )
     days = p["submission_days"]
     text = {
         "numbered": f"Invoices must be submitted within {days} days of the end of the billing period. Late invoices may be rejected.",
@@ -266,7 +286,13 @@ def build(tenant: str, name: str, currency: str, style: str, version: int, effec
 
     # ---- 8 confidentiality (no rules)
     c = section("Confidentiality and data protection", "Confidentiality", "Confidentiality")
-    add(c, "Counsel must keep all information received in connection with a matter confidential and process personal data only as "
-           "required for the engagement, in line with applicable data protection law.")
-    add(c, "Counsel may not use generative AI tools on our documents without our prior written consent, and must disclose any such use on the invoice.")
+    add(
+        c,
+        "Counsel must keep all information received in connection with a matter confidential and process personal data only as "
+        "required for the engagement, in line with applicable data protection law.",
+    )
+    add(
+        c,
+        "Counsel may not use generative AI tools on our documents without our prior written consent, and must disclose any such use on the invoice.",
+    )
     return d

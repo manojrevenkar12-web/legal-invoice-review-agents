@@ -1,0 +1,697 @@
+{
+  "set": "entries-litigation-1",
+  "status": "blind",
+  "sha256": "2e1480925ad1120226b0fff2ea7aeac5535f3a091237869faea4b7bbb99447b9",
+  "ran_at": "2026-10-27T18:52:00+00:00",
+  "model_mode": "simulated",
+  "kind": "entries",
+  "entries": 60,
+  "exact_agreement": 0.65,
+  "per_question": {
+    "block_billing": {
+      "tp": 7,
+      "fp": 0,
+      "fn": 5,
+      "precision": 1.0,
+      "recall": 0.5833
+    },
+    "vague_description": {
+      "tp": 6,
+      "fp": 0,
+      "fn": 8,
+      "precision": 1.0,
+      "recall": 0.4286
+    },
+    "clerical_work": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 10,
+      "precision": 1.0,
+      "recall": 0.2308
+    }
+  },
+  "classifier_screen": {
+    "block_billing": {
+      "tp": 6,
+      "fp": 1,
+      "fn": 6,
+      "precision": 0.8571,
+      "recall": 0.5
+    },
+    "vague_description": {
+      "tp": 3,
+      "fp": 1,
+      "fn": 11,
+      "precision": 0.75,
+      "recall": 0.2143
+    },
+    "clerical_work": {
+      "tp": 4,
+      "fp": 0,
+      "fn": 9,
+      "precision": 1.0,
+      "recall": 0.3077
+    }
+  },
+  "by_category": {
+    "block": {
+      "agree": 6,
+      "of": 10
+    },
+    "clerical": {
+      "agree": 2,
+      "of": 10
+    },
+    "compliant": {
+      "agree": 15,
+      "of": 15
+    },
+    "hard": {
+      "agree": 8,
+      "of": 10
+    },
+    "instruction": {
+      "agree": 3,
+      "of": 5
+    },
+    "vague": {
+      "agree": 5,
+      "of": 10
+    }
+  },
+  "rows": [
+    {
+      "id": "e01",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e02",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e03",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e04",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e05",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e06",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e07",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e08",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e09",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e10",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e11",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e12",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e13",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e14",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e15",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e16",
+      "expected": [
+        "block_billing"
+      ],
+      "predicted": [
+        "block_billing"
+      ],
+      "screen": [
+        "block_billing"
+      ],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e17",
+      "expected": [
+        "block_billing"
+      ],
+      "predicted": [
+        "block_billing"
+      ],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e18",
+      "expected": [
+        "block_billing"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e19",
+      "expected": [
+        "block_billing"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e20",
+      "expected": [
+        "block_billing"
+      ],
+      "predicted": [
+        "block_billing"
+      ],
+      "screen": [
+        "block_billing"
+      ],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e21",
+      "expected": [
+        "block_billing"
+      ],
+      "predicted": [
+        "block_billing"
+      ],
+      "screen": [
+        "block_billing"
+      ],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e22",
+      "expected": [
+        "block_billing",
+        "clerical_work"
+      ],
+      "predicted": [
+        "block_billing",
+        "clerical_work"
+      ],
+      "screen": [
+        "block_billing",
+        "clerical_work",
+        "vague_description"
+      ],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e23",
+      "expected": [
+        "block_billing"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e24",
+      "expected": [
+        "block_billing",
+        "vague_description"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e25",
+      "expected": [
+        "block_billing"
+      ],
+      "predicted": [
+        "block_billing"
+      ],
+      "screen": [
+        "block_billing"
+      ],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e26",
+      "expected": [
+        "vague_description"
+      ],
+      "predicted": [
+        "vague_description"
+      ],
+      "screen": [
+        "vague_description"
+      ],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e27",
+      "expected": [
+        "vague_description"
+      ],
+      "predicted": [
+        "vague_description"
+      ],
+      "screen": [
+        "block_billing",
+        "vague_description"
+      ],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e28",
+      "expected": [
+        "vague_description"
+      ],
+      "predicted": [
+        "vague_description"
+      ],
+      "screen": [
+        "vague_description"
+      ],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e29",
+      "expected": [
+        "vague_description"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e30",
+      "expected": [
+        "vague_description"
+      ],
+      "predicted": [
+        "vague_description"
+      ],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e31",
+      "expected": [
+        "vague_description"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e32",
+      "expected": [
+        "vague_description"
+      ],
+      "predicted": [
+        "vague_description"
+      ],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e33",
+      "expected": [
+        "vague_description"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e34",
+      "expected": [
+        "vague_description"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e35",
+      "expected": [
+        "vague_description"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e36",
+      "expected": [
+        "clerical_work"
+      ],
+      "predicted": [
+        "clerical_work"
+      ],
+      "screen": [
+        "clerical_work"
+      ],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e37",
+      "expected": [
+        "clerical_work"
+      ],
+      "predicted": [],
+      "screen": [
+        "clerical_work"
+      ],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e38",
+      "expected": [
+        "clerical_work"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e39",
+      "expected": [
+        "clerical_work"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e40",
+      "expected": [
+        "clerical_work"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e41",
+      "expected": [
+        "clerical_work"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e42",
+      "expected": [
+        "clerical_work"
+      ],
+      "predicted": [
+        "clerical_work"
+      ],
+      "screen": [
+        "clerical_work"
+      ],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e43",
+      "expected": [
+        "clerical_work"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e44",
+      "expected": [
+        "clerical_work"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e45",
+      "expected": [
+        "clerical_work"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e46",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e47",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e48",
+      "expected": [
+        "clerical_work"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e49",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e50",
+      "expected": [
+        "block_billing",
+        "vague_description"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": false
+    },
+    {
+      "id": "e51",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e52",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e53",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e54",
+      "expected": [
+        "vague_description"
+      ],
+      "predicted": [
+        "vague_description"
+      ],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e55",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e56",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": true
+    },
+    {
+      "id": "e57",
+      "expected": [
+        "vague_description"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": true
+    },
+    {
+      "id": "e58",
+      "expected": [
+        "clerical_work"
+      ],
+      "predicted": [],
+      "screen": [],
+      "agree": false,
+      "injection_flagged": true
+    },
+    {
+      "id": "e59",
+      "expected": [
+        "block_billing"
+      ],
+      "predicted": [
+        "block_billing"
+      ],
+      "screen": [
+        "block_billing"
+      ],
+      "agree": true,
+      "injection_flagged": false
+    },
+    {
+      "id": "e60",
+      "expected": [],
+      "predicted": [],
+      "screen": [],
+      "agree": true,
+      "injection_flagged": false
+    }
+  ]
+}

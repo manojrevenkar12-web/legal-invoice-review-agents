@@ -24,11 +24,21 @@ from lira.llm.schemas import RECORD_RULES
 _RULE = TypeAdapter(Rule)
 _NUMERIC = ("hours", "rate_factor", "reduce_factor", "max_unit_cost", "hours_per_month")
 _FIELDS = {
-    "billing_increment": ("hours",), "max_daily_hours": ("hours",), "travel_time": ("rate_factor",),
-    "internal_conference": ("policy",), "block_billing": ("action", "reduce_factor"), "vague_description": (),
-    "clerical_work": (), "nonbillable_role": ("roles",), "nonreimbursable_expense": ("codes",),
-    "expense_unit_cap": ("code", "max_unit_cost"), "submission_deadline": ("days",), "max_attendees": ("event", "max_timekeepers"),
-    "research_cap": ("hours_per_month",), "rate_cap": (), "budget": (),
+    "billing_increment": ("hours",),
+    "max_daily_hours": ("hours",),
+    "travel_time": ("rate_factor",),
+    "internal_conference": ("policy",),
+    "block_billing": ("action", "reduce_factor"),
+    "vague_description": (),
+    "clerical_work": (),
+    "nonbillable_role": ("roles",),
+    "nonreimbursable_expense": ("codes",),
+    "expense_unit_cap": ("code", "max_unit_cost"),
+    "submission_deadline": ("days",),
+    "max_attendees": ("event", "max_timekeepers"),
+    "research_cap": ("hours_per_month",),
+    "rate_cap": (),
+    "budget": (),
 }
 
 
@@ -68,21 +78,34 @@ def clauses_block(doc: GuidelineDocument) -> str:
     return "\n".join(f"[{c.id}] {c.text}" for c in doc.clauses)
 
 
-async def compile_guidelines(doc: GuidelineDocument, router: ModelRouter, tenant_name: str, previous: RuleSet | None = None,
-                             budget: Budget | None = None) -> CompileReport:
+async def compile_guidelines(
+    doc: GuidelineDocument, router: ModelRouter, tenant_name: str, previous: RuleSet | None = None, budget: Budget | None = None
+) -> CompileReport:
     prompt = load("guideline_compile")
     req = ModelRequest(
-        task="guideline_compile", system=prompt.system,
+        task="guideline_compile",
+        system=prompt.system,
         messages=[Message("user", [Block.t(prompt.render_user(tenant_name=tenant_name, document=doc.ref, clauses=clauses_block(doc)))])],
-        tools=[RECORD_RULES], tool_choice="record_rules", max_tokens=4096, prompt_id=prompt.id, prompt_version=prompt.version,
+        tools=[RECORD_RULES],
+        tool_choice="record_rules",
+        max_tokens=4096,
+        prompt_id=prompt.id,
+        prompt_version=prompt.version,
         tenant=doc.tenant,
     )
     routed = await router.call(req, _parse, budget)
     accepted: list[Rule] = []
     rejected: list[dict[str, Any]] = []
     keys: set[tuple[Any, ...]] = set()
-    rs = RuleSet(tenant=doc.tenant, version=doc.version, document=doc.ref, document_sha256=doc.sha256,
-                 effective_from=doc.effective_from, rules=[], compiled_by=f"{routed.model.key}:{prompt.id}@v{prompt.version}")
+    rs = RuleSet(
+        tenant=doc.tenant,
+        version=doc.version,
+        document=doc.ref,
+        document_sha256=doc.sha256,
+        effective_from=doc.effective_from,
+        rules=[],
+        compiled_by=f"{routed.model.key}:{prompt.id}@v{prompt.version}",
+    )
     for proposal in routed.value:
         try:
             rule = to_rule(proposal)
@@ -109,8 +132,11 @@ async def compile_guidelines(doc: GuidelineDocument, router: ModelRouter, tenant
 
 
 def _params(r: Rule) -> dict[str, Any]:
-    return {k: (format(v.normalize(), "f") if isinstance(v, Decimal) else list(v) if isinstance(v, tuple) else v)
-            for k, v in r.model_dump().items() if k not in ("clause_id", "quote")}
+    return {
+        k: (format(v.normalize(), "f") if isinstance(v, Decimal) else list(v) if isinstance(v, tuple) else v)
+        for k, v in r.model_dump().items()
+        if k not in ("clause_id", "quote")
+    }
 
 
 def cross_check(model_rules: RuleSet, pattern_rules: list[Rule]) -> list[dict[str, Any]]:
@@ -134,5 +160,7 @@ def diff(old: RuleSet, new: RuleSet) -> list[dict[str, Any]]:
         elif k not in b:
             out.append({"change": "removed", "rule": list(map(str, k)), "was": _params(a[k])})
         elif _params(a[k]) != _params(b[k]):
-            out.append({"change": "changed", "rule": list(map(str, k)), "was": _params(a[k]), "now": _params(b[k]), "clause": b[k].clause_id})
+            out.append(
+                {"change": "changed", "rule": list(map(str, k)), "was": _params(a[k]), "now": _params(b[k]), "clause": b[k].clause_id}
+            )
     return out

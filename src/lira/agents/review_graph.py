@@ -2,7 +2,7 @@
 
     parse_validate -> analyze -> apply_rules -> plan --(fan-out: one Send per batch)--> review_batch --> adjudicate
                                                     \\--------------- no candidates ---------------> adjudicate
-    adjudicate -> human_review (interrupt until a person decides) -> finalize
+    adjudicate -> settle -> human_review (interrupt until a person decides) -> settle -> ... -> END
 
 * parse_validate: LEDES parsing and checks against the system of record. A malformed file goes back to the firm.
 * analyze: classical NLP on every line (scores, entities, events, travel, injections, topics).
@@ -11,8 +11,10 @@
   batches. The agent sees pseudonymised entries and may search the client's guidelines before recording findings.
 * adjudicate: model decisions are verified and combined with the classifiers; internal conferences are resolved
   per meeting. Everything here is proposed to a person.
-* human_review: LangGraph interrupt; the API resumes the run with the reviewer's decisions.
-* finalize: amounts are settled again with the decisions, and each adjustment gets its explanation to the firm.
+* settle: amounts are settled with what is decided so far (automatic findings, the reviewer's decisions), and each
+  finding gets its explanation to the firm.
+* human_review: LangGraph interrupt; the API resumes the run with the reviewer's decisions (all or some of them;
+  the run settles and waits again until nothing is open).
 
 State holds only JSON-friendly values, so runs checkpoint to PostgreSQL (or SQLite locally) and resume anywhere.
 """
@@ -34,7 +36,7 @@ from lira import config, ledes
 from lira.agents.tools import run_tool_agent
 from lira.domain import Finding, FindingKind, Invoice
 from lira.guidelines.rules import RuleSet
-from lira.guidelines.store import NoApprovedRules, RuleStore
+from lira.guidelines.store import MemoryRules, NoApprovedRules, RuleStore
 from lira.llm.base import Block, Message, ModelRequest
 from lira.llm.prompts import load
 from lira.llm.router import Budget, ModelRouter, Unavailable
@@ -89,7 +91,7 @@ class BatchInput(TypedDict):
 @dataclass
 class ReviewDeps:
     ref: Reference
-    rules: RuleStore
+    rules: RuleStore | MemoryRules
     nlp: NlpModels
     router: ModelRouter
     index: HybridIndex
@@ -97,7 +99,7 @@ class ReviewDeps:
     human: Literal["interrupt", "skip"] = "interrupt"
 
 
-def _rules_at(rules: RuleStore, tenant: str) -> Callable[[date], RuleSet | None]:
+def _rules_at(rules: RuleStore | MemoryRules, tenant: str) -> Callable[[date], RuleSet | None]:
     cache: dict[date, RuleSet | None] = {}
 
     def at(d: date) -> RuleSet | None:
@@ -133,8 +135,13 @@ def build_review_graph(deps: ReviewDeps, checkpointer: Any = None) -> Any:
             v = validate(inv, deps.ref)
             if v.fatal or v.matter is None:
                 return {"status": "rejected_format", "fatal": [i.message for i in v.fatal], "invoice": inv.model_dump(mode="json")}
-            return {"invoice": inv.model_dump(mode="json"), "tenant": v.matter.tenant, "validation": [_dump(f) for f in v.findings],
-                    "spent_before": str(deps.spend_before(inv)), "status": "in_review"}
+            return {
+                "invoice": inv.model_dump(mode="json"),
+                "tenant": v.matter.tenant,
+                "validation": [_dump(f) for f in v.findings],
+                "spent_before": str(deps.spend_before(inv)),
+                "status": "in_review",
+            }
 
     def after_validate(state: ReviewState) -> str:
         return END if state.get("status") == "rejected_format" else "analyze"
@@ -153,8 +160,16 @@ def build_review_graph(deps: ReviewDeps, checkpointer: Any = None) -> Any:
         rules_at = _rules_at(deps.rules, matter.tenant)
         pre = {f["line_no"]: FindingKind(f["kind"]) for f in state.get("validation", []) if f["action"] == "reject" and f["line_no"]}
         with span("review.apply_rules"):
-            s = settle(inv, matter, firm, deps.ref, rules_at, _signals(state["analysis"]), Decimal(state.get("spent_before", "0")),
-                       pre_rejected=pre)
+            s = settle(
+                inv,
+                matter,
+                firm,
+                deps.ref,
+                rules_at,
+                _signals(state["analysis"]),
+                Decimal(state.get("spent_before", "0")),
+                pre_rejected=pre,
+            )
             flags = flag_findings(inv, state["analysis"], set(s.rejected))
         return {"rule_findings": [_dump(f) for f in s.findings + flags]}
 
@@ -164,8 +179,11 @@ def build_review_graph(deps: ReviewDeps, checkpointer: Any = None) -> Any:
         firm = deps.ref.firms[inv.law_firm_id]
         tenant = deps.ref.tenants[matter.tenant]
         rules_at = _rules_at(deps.rules, matter.tenant)
-        auto_rejected = {f["line_no"] for f in state["rule_findings"] + state.get("validation", [])
-                         if f["action"] == "reject" and f["status"] == "auto_applied"}
+        auto_rejected = {
+            f["line_no"]
+            for f in state["rule_findings"] + state.get("validation", [])
+            if f["action"] == "reject" and f["status"] == "auto_applied"
+        }
         thresholds = cfg["candidates"]
         names: dict[str, str] = {}
         entries: list[dict[str, Any]] = []
@@ -185,8 +203,11 @@ def build_review_graph(deps: ReviewDeps, checkpointer: Any = None) -> Any:
                 if q == "internal_conference":
                     plausible = a["conference"]
                 else:
-                    plausible = a["p"].get(q, 0.0) >= float(thresholds[q]) or (q == "block_billing" and a["tasks"] >= 2) or (
-                        q == "vague_description" and len(a["normalized"].split()) <= 4)
+                    plausible = (
+                        a["p"].get(q, 0.0) >= float(thresholds[q])
+                        or (q == "block_billing" and a["tasks"] >= 2)
+                        or (q == "vague_description" and len(a["normalized"].split()) <= 4)
+                    )
                 if plausible:
                     qs.append(q)
                     clause_ids[rule.clause_id] = {"clause_id": rule.clause_id, "text": rule.quote}
@@ -200,13 +221,31 @@ def build_review_graph(deps: ReviewDeps, checkpointer: Any = None) -> Any:
                 ref = names.get(p.get("timekeeper_id") or p["text"].lower())
                 other = firm.timekeeper(p["timekeeper_id"]) if p.get("timekeeper_id") else None
                 people.append({"ref": ref, "at_firm": bool(p["at_firm"]), "role": other.title if other else "not at the firm"})
-            entries.append({"line_no": li.line_no, "role": tk.title if tk else li.timekeeper_class, "task_code": li.task_code,
-                            "activity_code": li.activity_code, "hours": str(li.units), "description": text, "questions": qs,
-                            "people": people, "contains_instruction": bool(a.get("injection"))})
+            entries.append(
+                {
+                    "line_no": li.line_no,
+                    "role": tk.title if tk else li.timekeeper_class,
+                    "task_code": li.task_code,
+                    "activity_code": li.activity_code,
+                    "hours": str(li.units),
+                    "description": text,
+                    "questions": qs,
+                    "people": people,
+                    "contains_instruction": bool(a.get("injection")),
+                }
+            )
         size = int(cfg["batch_size"])
-        batches = [{"tenant": matter.tenant, "tenant_name": tenant.name, "invoice": inv.number, "entries": entries[i: i + size],
-                    "clauses": list(clause_ids.values()), "on": inv.period_end.isoformat() if inv.period_end else inv.date.isoformat()}
-                   for i in range(0, len(entries), size)]
+        batches = [
+            {
+                "tenant": matter.tenant,
+                "tenant_name": tenant.name,
+                "invoice": inv.number,
+                "entries": entries[i : i + size],
+                "clauses": list(clause_ids.values()),
+                "on": inv.period_end.isoformat() if inv.period_end else inv.date.isoformat(),
+            }
+            for i in range(0, len(entries), size)
+        ]
         return {"batches": batches}
 
     def fan_out(state: ReviewState) -> list[Send] | str:
@@ -218,10 +257,18 @@ def build_review_graph(deps: ReviewDeps, checkpointer: Any = None) -> Any:
         prompt = load("line_review")
         clauses = "\n".join(f"[{c['clause_id']}] {c['text']}" for c in b["clauses"])
         entries = json.dumps(b["entries"], indent=1)
-        req = ModelRequest(task="line_review", system=prompt.system,
-                           messages=[Message("user", [Block.t(prompt.render_user(tenant_name=b["tenant_name"], clauses=clauses, entries=entries))])],
-                           tools=[SEARCH_GUIDELINES, RECORD_FINDINGS], max_tokens=4096, prompt_id=prompt.id,
-                           prompt_version=prompt.version, tenant=b["tenant"], metadata={"invoice": b["invoice"]})
+        user = prompt.render_user(tenant_name=b["tenant_name"], clauses=clauses, entries=entries)
+        req = ModelRequest(
+            task="line_review",
+            system=prompt.system,
+            messages=[Message("user", [Block.t(user)])],
+            tools=[SEARCH_GUIDELINES, RECORD_FINDINGS],
+            max_tokens=4096,
+            prompt_id=prompt.id,
+            prompt_version=prompt.version,
+            tenant=b["tenant"],
+            metadata={"invoice": b["invoice"]},
+        )
         on = date.fromisoformat(b["on"])
 
         async def search(args: dict[str, Any]) -> dict[str, Any]:
@@ -231,12 +278,24 @@ def build_review_graph(deps: ReviewDeps, checkpointer: Any = None) -> Any:
         budget = Budget(float(models_cfg["routing"]["max_cost_usd_per_invoice"]))
         with span("review.review_batch", entries=len(b["entries"])):
             try:
-                run = await run_tool_agent(deps.router, req, {"search_guidelines": search}, "record_findings",
-                                           LineReviewOutput.model_validate, int(cfg["max_agent_steps"]), budget)
+                run = await run_tool_agent(
+                    deps.router,
+                    req,
+                    {"search_guidelines": search},
+                    "record_findings",
+                    LineReviewOutput.model_validate,
+                    int(cfg["max_agent_steps"]),
+                    budget,
+                )
             except Unavailable as e:
                 metrics.emit({"node": "review_batch", "outcome": "degraded"}, batches=1)
-                return {"model_errors": [str(e)], "views": [
-                    asdict(ModelView(e_["description"], e_["questions"])) | {"line_no": e_["line_no"], "failed": True} for e_ in b["entries"]]}
+                return {
+                    "model_errors": [str(e)],
+                    "views": [
+                        asdict(ModelView(e_["description"], e_["questions"])) | {"line_no": e_["line_no"], "failed": True}
+                        for e_ in b["entries"]
+                    ],
+                }
         out = run.value
         views: dict[str, ModelView] = {e_["line_no"]: ModelView(e_["description"], e_["questions"]) for e_ in b["entries"]}
         for d in out.findings:
@@ -245,8 +304,11 @@ def build_review_graph(deps: ReviewDeps, checkpointer: Any = None) -> Any:
         for inj in out.injections:
             if inj.line_no in views:
                 views[inj.line_no].injection_reported = inj.quote
-        return {"views": [asdict(v) | {"line_no": ln, "failed": False} for ln, v in views.items()],
-                "model_cost_usd": [run.cost_usd], "tool_calls": run.tool_calls}
+        return {
+            "views": [asdict(v) | {"line_no": ln, "failed": False} for ln, v in views.items()],
+            "model_cost_usd": [run.cost_usd],
+            "tool_calls": run.tool_calls,
+        }
 
     def adjudicate_node(state: ReviewState) -> dict[str, Any]:
         inv = Invoice.model_validate(state["invoice"])
@@ -260,8 +322,11 @@ def build_review_graph(deps: ReviewDeps, checkpointer: Any = None) -> Any:
                 failed = True
                 continue
             views[v["line_no"]] = ModelView(v["text"], v["questions"], v["decisions"], v.get("injection_reported"))
-        rejected = {f["line_no"] for f in state["rule_findings"] + state.get("validation", [])
-                    if f["action"] == "reject" and f["status"] == "auto_applied" and f["line_no"]}
+        rejected = {
+            f["line_no"]
+            for f in state["rule_findings"] + state.get("validation", [])
+            if f["action"] == "reject" and f["status"] == "auto_applied" and f["line_no"]
+        }
         with span("review.adjudicate"):
             adj = adjudicate(inv, firm, state["analysis"], rules_at, views, failed or bool(state.get("model_errors")), rejected)
         if adj.dropped:
@@ -275,58 +340,15 @@ def build_review_graph(deps: ReviewDeps, checkpointer: Any = None) -> Any:
         pending = [f for f in state["findings"] if f["status"] == "proposed"]
         if pending and deps.human == "interrupt":
             return "human_review"
-        return "finalize"
+        return END
 
     def human_review(state: ReviewState) -> dict[str, Any]:
         pending = [f["id"] for f in state["findings"] if f["status"] == "proposed"]
-        decisions = interrupt({"invoice": state["invoice"]["number"], "pending": pending})
-        return {"decisions": decisions or {}}
+        new = interrupt({"invoice": state["invoice"]["number"], "pending": pending})
+        return {"decisions": {**(state.get("decisions") or {}), **(new or {})}}
 
-    def finalize(state: ReviewState) -> dict[str, Any]:
-        inv = Invoice.model_validate(state["invoice"])
-        matter = deps.ref.matters[inv.client_matter_id]
-        firm = deps.ref.firms[inv.law_firm_id]
-        tenant = deps.ref.tenants[matter.tenant]
-        rules_at = _rules_at(deps.rules, matter.tenant)
-        decisions = state.get("decisions") or {}
-        findings = [Finding.model_validate(f) for f in state["findings"]]
-        accepted: dict[str, list[Accepted]] = {}
-        dismissed: set[str] = set()
-        confirmed: set[str] = {fid for fid, d in decisions.items() if d["decision"] == "accept"}
-        for f in findings:
-            d = decisions.get(f.id)
-            if d is None:
-                continue
-            if d["decision"] == "reject":
-                dismissed.add(f.id)
-            elif d["decision"] == "accept" and f.decided_by == "person" and f.line_no and f.action in ("reject", "reduce") and f.source != "rule":
-                factor = (-f.adjustment / _base(f, inv)) if f.action == "reduce" else None
-                accepted.setdefault(f.line_no, []).append(Accepted(f.kind, f.action, factor))
-        pre = {f.line_no: f.kind for f in findings if f.source == "validation" and f.action == "reject" and f.line_no and f.id not in dismissed}
-        uncertain = {f.line_no for f in findings if f.line_no and f.status == "proposed" and f.action in ("reject", "reduce")
-                     and f.id not in decisions and f.kind not in (FindingKind.DAILY_HOURS, FindingKind.RESEARCH)}
-        s = settle(inv, matter, firm, deps.ref, rules_at, _signals(state["analysis"]), Decimal(state.get("spent_before", "0")),
-                   accepted=accepted, pre_rejected=pre, dismissed=dismissed, confirmed=confirmed, uncertain=uncertain)
-        settled = {f.id: f for f in s.findings}
-        known = {f.id for f in findings}
-        findings += [f for f in s.findings if f.id not in known]  # findings that only appear once decisions are in
-        out: list[dict[str, Any]] = []
-        for f in findings:
-            g = settled.get(f.id, f)
-            d = decisions.get(f.id)
-            status = g.status
-            if d is not None:
-                status = "accepted" if d["decision"] == "accept" else "rejected"
-            elif f.status == "proposed":
-                status = "proposed"
-            li = inv.line(f.line_no) if f.line_no else None
-            dump = _dump(g) | {"status": status, "explanation": explain(g, li, tenant.currency)}
-            if d is not None:
-                dump["decision"] = d
-            out.append(dump)
-        pending = any(f["status"] == "proposed" for f in out)
-        return {"findings": out, "adjustments": {k: str(v) for k, v in s.adjustments.items()},
-                "total_adjustment": str(s.total_adjustment), "status": "awaiting_review" if pending else "settled"}
+    def settle_node(state: ReviewState) -> dict[str, Any]:
+        return settle_state(deps, state)  # type: ignore[arg-type]
 
     # ---------------------------------------------------------------- graph
     g = StateGraph(ReviewState)
@@ -334,20 +356,93 @@ def build_review_graph(deps: ReviewDeps, checkpointer: Any = None) -> Any:
     g.add_node("analyze", analyze_node)
     g.add_node("apply_rules", apply_rules)
     g.add_node("plan", plan)
-    g.add_node("review_batch", review_batch, retry_policy=RetryPolicy(max_attempts=2))
+    g.add_node("review_batch", review_batch, retry_policy=RetryPolicy(max_attempts=2))  # type: ignore[arg-type]  # Send payload, not state
     g.add_node("adjudicate", adjudicate_node)
+    g.add_node("settle", settle_node)
     g.add_node("human_review", human_review)
-    g.add_node("finalize", finalize)
     g.add_edge(START, "parse_validate")
     g.add_conditional_edges("parse_validate", after_validate, ["analyze", END])
     g.add_edge("analyze", "apply_rules")
     g.add_edge("apply_rules", "plan")
     g.add_conditional_edges("plan", fan_out, ["review_batch", "adjudicate"])
     g.add_edge("review_batch", "adjudicate")
-    g.add_conditional_edges("adjudicate", route_human, ["human_review", "finalize"])
-    g.add_edge("human_review", "finalize")
-    g.add_edge("finalize", END)
+    g.add_edge("adjudicate", "settle")
+    g.add_conditional_edges("settle", route_human, ["human_review", END])
+    g.add_edge("human_review", "settle")
     return g.compile(checkpointer=checkpointer)
+
+
+def settle_state(deps: ReviewDeps, state: dict[str, Any]) -> dict[str, Any]:
+    """Settle an invoice from its review state and the reviewer's decisions so far (also used after appeals)."""
+    inv = Invoice.model_validate(state["invoice"])
+    matter = deps.ref.matters[inv.client_matter_id]
+    firm = deps.ref.firms[inv.law_firm_id]
+    tenant = deps.ref.tenants[matter.tenant]
+    rules_at = _rules_at(deps.rules, matter.tenant)
+    decisions = state.get("decisions") or {}
+    findings = [Finding.model_validate(f) for f in state["findings"]]
+    accepted: dict[str, list[Accepted]] = {}
+    dismissed: set[str] = set()
+    confirmed: set[str] = {fid for fid, d in decisions.items() if d["decision"] == "accept"}
+    for f in findings:
+        d = decisions.get(f.id)
+        if d is None:
+            continue
+        if d["decision"] == "reject":
+            dismissed.add(f.id)
+        elif (
+            d["decision"] == "accept" and f.decided_by == "person" and f.line_no and f.action in ("reject", "reduce") and f.source != "rule"
+        ):
+            factor = (-f.adjustment / _base(f, inv)) if f.action == "reduce" else None
+            accepted.setdefault(f.line_no, []).append(Accepted(f.kind, f.action, factor))
+    pre = {f.line_no: f.kind for f in findings if f.source == "validation" and f.action == "reject" and f.line_no and f.id not in dismissed}
+    uncertain = {
+        f.line_no
+        for f in findings
+        if f.line_no
+        and f.status == "proposed"
+        and f.action in ("reject", "reduce")
+        and f.id not in decisions
+        and f.kind not in (FindingKind.DAILY_HOURS, FindingKind.RESEARCH)
+    }
+    s = settle(
+        inv,
+        matter,
+        firm,
+        deps.ref,
+        rules_at,
+        _signals(state["analysis"]),
+        Decimal(state.get("spent_before", "0")),
+        accepted=accepted,
+        pre_rejected=pre,
+        dismissed=dismissed,
+        confirmed=confirmed,
+        uncertain=uncertain,
+    )
+    settled = {f.id: f for f in s.findings}
+    known = {f.id for f in findings}
+    findings += [f for f in s.findings if f.id not in known]  # findings that only appear once decisions are in
+    out: list[dict[str, Any]] = []
+    for f in findings:
+        g = settled.get(f.id, f)
+        d = decisions.get(f.id)
+        status = g.status
+        if d is not None:
+            status = "accepted" if d["decision"] == "accept" else "rejected"
+        elif f.status == "proposed":
+            status = "proposed"
+        li = inv.line(f.line_no) if f.line_no else None
+        dump = _dump(g) | {"status": status, "explanation": explain(g, li, tenant.currency)}
+        if d is not None:
+            dump["decision"] = d
+        out.append(dump)
+    pending = any(f["status"] == "proposed" for f in out)
+    return {
+        "findings": out,
+        "adjustments": {k: str(v) for k, v in s.adjustments.items()},
+        "total_adjustment": str(s.total_adjustment),
+        "status": "awaiting_review" if pending else "settled",
+    }
 
 
 def _injections_reported(inv: Invoice, views: dict[str, ModelView], analysis: dict[str, dict[str, Any]]) -> list[Finding]:
@@ -356,14 +451,24 @@ def _injections_reported(inv: Invoice, views: dict[str, ModelView], analysis: di
     for ln, v in views.items():
         if v.injection_reported and not analysis.get(ln, {}).get("injection"):
             li = inv.line(ln)
-            out.append(Finding(id=f"{inv.number}:{ln}:prompt_injection", invoice=inv.number, line_no=ln, kind=FindingKind.INJECTION,
-                               source="model", decided_by="person", action="flag", confidence=0.7,
-                               severity=round(float(li.total) * 0.5, 2), rationale="The model reported an instruction inside this entry.",
-                               evidence=[]))
+            out.append(
+                Finding(
+                    id=f"{inv.number}:{ln}:prompt_injection",
+                    invoice=inv.number,
+                    line_no=ln,
+                    kind=FindingKind.INJECTION,
+                    source="model",
+                    decided_by="person",
+                    action="flag",
+                    confidence=0.7,
+                    severity=round(float(li.total) * 0.5, 2),
+                    rationale="The model reported an instruction inside this entry.",
+                    evidence=[],
+                )
+            )
     return out
 
 
 def _base(f: Finding, inv: Invoice) -> Decimal:
     li = inv.line(f.line_no) if f.line_no else None
     return li.total if li and li.total else Decimal("1")
-

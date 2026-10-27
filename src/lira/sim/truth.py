@@ -184,16 +184,43 @@ def score_invoice(
             if f.get("block") and p["block_billing"]["action"] == "reduce":
                 amount = amount * (1 - Decimal(str(p["block_billing"]["factor"])))
             expected = money(amount) - li.total
-        out.append({
-            "invoice": inv.number, "tenant": m.tenant, "firm": m.firm_id, "matter": m.id, "line_no": li.line_no,
-            "date": li.date, "type": li.type.value, "total": li.total, "kinds": kinds.get(li.line_no, []),
-            "expected_adjustment": money(min(Decimal("0"), expected)),
-            "true_task_code": f.get("true_task") or (li.task_code if li.is_fee else ""),
-            "facts": {k: v for k, v in f.items() if k in ("vague", "clerical", "block", "tasks", "travel", "halved", "research",
-                                                           "internal_conference", "event", "event_kind", "injection", "inflated",
-                                                           "unauthorized", "increment_slip")},
-            "split": "history" if month_index < history_months else "live",
-        })
+        out.append(
+            {
+                "invoice": inv.number,
+                "tenant": m.tenant,
+                "firm": m.firm_id,
+                "matter": m.id,
+                "line_no": li.line_no,
+                "date": li.date,
+                "type": li.type.value,
+                "total": li.total,
+                "kinds": kinds.get(li.line_no, []),
+                "expected_adjustment": money(min(Decimal("0"), expected)),
+                "true_task_code": f.get("true_task") or (li.task_code if li.is_fee else ""),
+                "facts": {
+                    k: v
+                    for k, v in f.items()
+                    if k
+                    in (
+                        "vague",
+                        "clerical",
+                        "block",
+                        "tasks",
+                        "travel",
+                        "halved",
+                        "research",
+                        "internal_conference",
+                        "event",
+                        "event_kind",
+                        "injection",
+                        "inflated",
+                        "unauthorized",
+                        "increment_slip",
+                    )
+                },
+                "split": "history" if month_index < history_months else "live",
+            }
+        )
 
     # --- invoice level
     p_end = params_at(m.tenant, inv.period_end or inv.date)
@@ -201,11 +228,18 @@ def score_invoice(
     before = spent[m.id]
     spent[m.id] = before + inv.total
     over_budget = spent[m.id] > m.budget
-    inv_truth = {"invoice": inv.number, "tenant": m.tenant, "firm": m.firm_id, "matter": m.id, "late": late,
-                 "over_budget": over_budget, "total": inv.total,
-                 "expected_adjustment": money(sum((r["expected_adjustment"] for r in out), Decimal("0"))),
-                 "split": "history" if month_index < history_months else "live",
-                 "dispute": bool(late or any(r["expected_adjustment"] < 0 for r in out))}
+    inv_truth = {
+        "invoice": inv.number,
+        "tenant": m.tenant,
+        "firm": m.firm_id,
+        "matter": m.id,
+        "late": late,
+        "over_budget": over_budget,
+        "total": inv.total,
+        "expected_adjustment": money(sum((r["expected_adjustment"] for r in out), Decimal("0"))),
+        "split": "history" if month_index < history_months else "live",
+        "dispute": bool(late or any(r["expected_adjustment"] < 0 for r in out)),
+    }
     return out, inv_truth
 
 

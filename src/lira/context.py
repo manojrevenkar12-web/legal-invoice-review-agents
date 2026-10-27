@@ -16,7 +16,16 @@ from lira.retrieval.index import Embedder, HashingEmbedder, HybridIndex, SpacyEm
 
 
 def default_embedder() -> Embedder:
-    return HashingEmbedder() if os.environ.get("LIRA_EMBEDDER") == "hashing" else SpacyEmbedder()
+    choice = os.environ.get("LIRA_EMBEDDER", "spacy")
+    if choice == "hashing":
+        return HashingEmbedder()
+    if choice == "titan":
+        import boto3
+
+        from lira.retrieval.aws import TitanEmbedder
+
+        return TitanEmbedder(boto3.client("bedrock-runtime", region_name=os.environ.get("AWS_REGION", "eu-central-1")))
+    return SpacyEmbedder()
 
 
 @dataclass
@@ -29,8 +38,9 @@ class Context:
     router: ModelRouter
 
     @classmethod
-    def load(cls, data: Path | None = None, models: Path | None = None, router: ModelRouter | None = None,
-             embedder: Embedder | None = None) -> Context:
+    def load(
+        cls, data: Path | None = None, models: Path | None = None, router: ModelRouter | None = None, embedder: Embedder | None = None
+    ) -> Context:
         data = data or config.data_dir()
         models = models or config.models_dir()
         ctx = cls(

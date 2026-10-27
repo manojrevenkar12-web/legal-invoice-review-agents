@@ -30,12 +30,76 @@ from lira.sim.appeals import training_set as appeal_training_set
 from lira.sim.guidelines_gen import build as build_guidelines
 from lira.utbms import PHASES, TASK_CODES
 
-FIRST_NAMES = ["Mira", "Daniel", "Sophie", "Kenji", "Amara", "Lucas", "Hannah", "Rafael", "Chloe", "Tobias", "Leila", "Martin",
-               "Zara", "Viktor", "Elena", "Noah", "Ines", "Oliver", "Aisha", "Jakob", "Mei", "Pedro", "Freya", "Ibrahim",
-               "Clara", "Stefan", "Nkechi", "Arjun", "Laura", "Mateo", "Johanna", "Kofi", "Anna", "Ravi", "Emma", "Diego"]
-LAST_NAMES = ["Okafor", "Lindqvist", "Harlow", "Marchetti", "Ashdown", "Becker", "Nakamura", "Ferreira", "Novak", "Haddad",
-              "Schreiber", "Osei", "Kowalski", "Moreau", "Iyer", "Castillo", "Weber", "Achterberg", "Sato", "Mensah",
-              "Olsen", "Rinaldi", "Kaplan", "Duarte", "Brandt", "Szabo", "Quinn", "Varga", "Hoffmann", "Adeyemi"]
+FIRST_NAMES = [
+    "Mira",
+    "Daniel",
+    "Sophie",
+    "Kenji",
+    "Amara",
+    "Lucas",
+    "Hannah",
+    "Rafael",
+    "Chloe",
+    "Tobias",
+    "Leila",
+    "Martin",
+    "Zara",
+    "Viktor",
+    "Elena",
+    "Noah",
+    "Ines",
+    "Oliver",
+    "Aisha",
+    "Jakob",
+    "Mei",
+    "Pedro",
+    "Freya",
+    "Ibrahim",
+    "Clara",
+    "Stefan",
+    "Nkechi",
+    "Arjun",
+    "Laura",
+    "Mateo",
+    "Johanna",
+    "Kofi",
+    "Anna",
+    "Ravi",
+    "Emma",
+    "Diego",
+]
+LAST_NAMES = [
+    "Okafor",
+    "Lindqvist",
+    "Harlow",
+    "Marchetti",
+    "Ashdown",
+    "Becker",
+    "Nakamura",
+    "Ferreira",
+    "Novak",
+    "Haddad",
+    "Schreiber",
+    "Osei",
+    "Kowalski",
+    "Moreau",
+    "Iyer",
+    "Castillo",
+    "Weber",
+    "Achterberg",
+    "Sato",
+    "Mensah",
+    "Olsen",
+    "Rinaldi",
+    "Kaplan",
+    "Duarte",
+    "Brandt",
+    "Szabo",
+    "Quinn",
+    "Varga",
+    "Hoffmann",
+    "Adeyemi",
+]
 
 ROSTER_SHAPE = [  # (title, LEDES class, seniority, base rate, count)
     ("Partner", "PT", 6, 780, 2),
@@ -105,8 +169,9 @@ class World:
                             used.add(name)
                             break
                     n += 1
-                    tks.append(Timekeeper(id=f"{fid[:3].upper()}{n:03d}", firm_id=fid, name=name, classification=cls,
-                                          title=title, seniority=sen))
+                    tks.append(
+                        Timekeeper(id=f"{fid[:3].upper()}{n:03d}", firm_id=fid, name=name, classification=cls, title=title, seniority=sen)  # type: ignore[arg-type]
+                    )
             firms[fid] = Firm(id=fid, name=fc["name"], timekeepers=tuple(tks))
         return firms
 
@@ -140,8 +205,9 @@ class World:
                 gdir = world / "guidelines" / t.id
                 gdir.mkdir(parents=True, exist_ok=True)
                 (gdir / f"v{v['version']}.md").write_text(doc.render(f"{t.name} - Outside Counsel Billing Guidelines"))
-                (gdir / f"v{v['version']}.json").write_text(json.dumps({"tenant": t.id, "version": v["version"],
-                                                                       "effective_from": eff.isoformat()}, indent=2))
+                (gdir / f"v{v['version']}.json").write_text(
+                    json.dumps({"tenant": t.id, "version": v["version"], "effective_from": eff.isoformat()}, indent=2)
+                )
                 guideline_truth[f"{t.id}@v{v['version']}"] = [_jsonable(a) for a in doc.answer]
                 versions.append((eff, v["params"]))
             params_by_tenant[t.id] = sorted(versions, key=lambda x: x[0])
@@ -153,8 +219,16 @@ class World:
                     if fid == "marchetti":
                         rates.append(RateAgreement(tenant=t.id, firm_id=fid, timekeeper_id=tk.id, rate=r0, effective_from=date(2025, 1, 1)))
                     else:
-                        rates.append(RateAgreement(tenant=t.id, firm_id=fid, timekeeper_id=tk.id, rate=r0,
-                                                   effective_from=date(2025, 1, 1), effective_to=date(2025, 12, 31)))
+                        rates.append(
+                            RateAgreement(
+                                tenant=t.id,
+                                firm_id=fid,
+                                timekeeper_id=tk.id,
+                                rate=r0,
+                                effective_from=date(2025, 1, 1),
+                                effective_to=date(2025, 12, 31),
+                            )
+                        )
                         r1 = Decimal(str(round(float(r0) * 1.05 / 5) * 5))
                         rates.append(RateAgreement(tenant=t.id, firm_id=fid, timekeeper_id=tk.id, rate=r1, effective_from=date(2026, 1, 1)))
 
@@ -162,8 +236,11 @@ class World:
             for i in range(tc["matters"]):
                 fid = tc["firms"][i % len(tc["firms"])]
                 firm = firms[fid]
-                core = [tk for tk in firm.timekeepers if tk.title in ("Partner", "Senior Associate", "Associate", "Paralegal", "Of Counsel",
-                                                                    "First-Year Associate")]
+                core = [
+                    tk
+                    for tk in firm.timekeepers
+                    if tk.title in ("Partner", "Senior Associate", "Associate", "Paralegal", "Of Counsel", "First-Year Associate")
+                ]
                 pick = list(self.rng.choice(len(core), size=min(len(core), int(self.rng.integers(5, 8))), replace=False))
                 staff = [core[j] for j in sorted(pick)]
                 if not any(tk.classification == "PT" for tk in staff):
@@ -172,15 +249,20 @@ class World:
                     staff.append(next(tk for tk in core if tk.classification == "LA"))
                 staff += [tk for tk in firm.timekeepers if tk.seniority == 0]  # firms put juniors on matters too
                 budget = Decimal(int(self.rng.integers(18, 60)) * 10000)
-                matters.append(Matter(
-                    id=f"{t.id[:3].upper()}-{2025 + i % 2}-{i + 1:03d}",
-                    tenant=t.id, firm_id=fid, law_firm_matter_id=f"{fid[:3].upper()}{40000 + 17 * i + len(t.id)}",
-                    name=f"{N.SLOTS['party'][i % len(N.SLOTS['party'])].replace('the ', '').title()} - {N.SLOTS['topic'][(i * 3) % len(N.SLOTS['topic'])]}",
-                    budget=budget, opened=date(2025, 1 + i % 9, 1 + (i * 5) % 27),
-                    authorized_timekeepers=tuple(tk.id for tk in staff),
-                    authorized_task_codes=tuple(TASK_CODES),
-                    authorized_expense_codes=tuple(f"E{n}" for n in range(101, 125)),
-                ))
+                matters.append(
+                    Matter(
+                        id=f"{t.id[:3].upper()}-{2025 + i % 2}-{i + 1:03d}",
+                        tenant=t.id,
+                        firm_id=fid,
+                        law_firm_matter_id=f"{fid[:3].upper()}{40000 + 17 * i + len(t.id)}",
+                        name=f"{N.SLOTS['party'][i % len(N.SLOTS['party'])].replace('the ', '').title()} - {N.SLOTS['topic'][(i * 3) % len(N.SLOTS['topic'])]}",
+                        budget=budget,
+                        opened=date(2025, 1 + i % 9, 1 + (i * 5) % 27),
+                        authorized_timekeepers=tuple(tk.id for tk in staff),
+                        authorized_task_codes=tuple(TASK_CODES),
+                        authorized_expense_codes=tuple(f"E{n}" for n in range(101, 125)),
+                    )
+                )
 
         (world / "tenants.json").write_text(json.dumps([_jsonable(t.model_dump()) for t in tenants], indent=2))
         (world / "firms.json").write_text(json.dumps([_jsonable(f.model_dump()) for f in firms.values()], indent=2))
@@ -224,18 +306,35 @@ class World:
                 f.write(json.dumps(_jsonable(r)) + "\n")
         drift = {fid: fc["drift_from"] for fid, fc in cfg["firms"].items() if fc.get("drift_from")}
         (truth / "drift.json").write_text(json.dumps(drift, indent=2))
-        (world / "world.json").write_text(json.dumps({
-            "first_month": cfg["first_month"], "months": cfg["months"], "history_months": cfg["history_months"],
-        }, indent=2))
-        summary = {"invoices": n_invoices, "lines": len(line_truth), "history_decisions": len(history),
-                   "violating_lines": sum(1 for r in line_truth if r["kinds"])}
+        (world / "world.json").write_text(
+            json.dumps(
+                {
+                    "first_month": cfg["first_month"],
+                    "months": cfg["months"],
+                    "history_months": cfg["history_months"],
+                },
+                indent=2,
+            )
+        )
+        summary = {
+            "invoices": n_invoices,
+            "lines": len(line_truth),
+            "history_decisions": len(history),
+            "violating_lines": sum(1 for r in line_truth if r["kinds"]),
+        }
         (truth / "summary.json").write_text(json.dumps(summary, indent=2))
         return summary
 
 
 class _InvoiceGenerator:
-    def __init__(self, w: World, firms: dict[str, Firm], tenants: dict[str, Tenant], rates: list[RateAgreement],
-                 params: dict[str, list[tuple[date, dict[str, Any]]]]):
+    def __init__(
+        self,
+        w: World,
+        firms: dict[str, Firm],
+        tenants: dict[str, Tenant],
+        rates: list[RateAgreement],
+        params: dict[str, list[tuple[date, dict[str, Any]]]],
+    ):
         self.w, self.cfg, self.rng = w, w.cfg, w.rng
         self.firms, self.tenants, self.rates, self.params = firms, tenants, rates, params
         self.ev = self.cfg["events"]
@@ -304,8 +403,12 @@ class _InvoiceGenerator:
     def name_form(self, tk: Timekeeper, firm: str) -> str:
         first, last = tk.name.split(" ", 1)
         st = self.cfg["firms"][firm]["style"]
-        forms = {"verbose": [tk.name, f"{first[0]}. {last}"], "terse": [last, f"{first[0]}{last[0]}"],
-                 "semicolons": [f"{first[0]}. {last}", tk.name], "abbreviated": [f"{first[0]}. {last}", last]}[st]
+        forms = {
+            "verbose": [tk.name, f"{first[0]}. {last}"],
+            "terse": [last, f"{first[0]}{last[0]}"],
+            "semicolons": [f"{first[0]}. {last}", tk.name],
+            "abbreviated": [f"{first[0]}. {last}", last],
+        }[st]
         return forms[int(self.rng.integers(len(forms)))]
 
     def hours(self, median: float) -> Decimal:
@@ -313,7 +416,9 @@ class _InvoiceGenerator:
         return Decimal(str(min(round(median * 2.2, 1), max(0.1, round(h, 1)))))
 
     # ---------------------------------------------------------------- one invoice
-    def invoice(self, m: Matter, mi: int, start: date, end: date, spent: dict[str, Decimal]) -> tuple[Invoice, list[dict[str, Any]], dict[str, Any]]:
+    def invoice(
+        self, m: Matter, mi: int, start: date, end: date, spent: dict[str, Decimal]
+    ) -> tuple[Invoice, list[dict[str, Any]], dict[str, Any]]:
         r, cfg = self.rng, self.cfg
         firm = self.firms[m.firm_id]
         fc = cfg["firms"][m.firm_id]
@@ -322,8 +427,11 @@ class _InvoiceGenerator:
         staff_tk = [t for t in staff if t is not None]
         lawyers = [t for t in staff_tk if t.classification in ("PT", "AS", "OC")]
         paralegals = [t for t in staff_tk if t.classification == "LA"]
-        juniors = [t for t in staff_tk if t.seniority == 0 and (
-            ("Summer" in t.title and start.month in fc.get("summer_months", [])) or "Summer" not in t.title)]
+        juniors = [
+            t
+            for t in staff_tk
+            if t.seniority == 0 and (("Summer" in t.title and start.month in fc.get("summer_months", [])) or "Summer" not in t.title)
+        ]
         days = _business_days(start, end)
         phase_idx = min(4, max(0, (mi + (_stable(m.id) % 3)) // 3))
         phases = list(PHASES)[: phase_idx + 1]
@@ -365,7 +473,10 @@ class _InvoiceGenerator:
             elif roll < p_vague + p_clerical + fc["block"] and not is_para:
                 k = int(r.integers(2, 5))
                 parts = [atoms[int(r.integers(len(atoms)))] for _ in range(k)]
-                parts = [p for p in parts if "deposition" not in p.tags and "hearing" not in p.tags] or [N.PROFESSIONAL[0], N.PROFESSIONAL[3]]
+                parts = [p for p in parts if "deposition" not in p.tags and "hearing" not in p.tags] or [
+                    N.PROFESSIONAL[0],
+                    N.PROFESSIONAL[3],
+                ]
                 if len(parts) < 2:
                     parts.append(N.PROFESSIONAL[7])
                 texts = [self.fill(p.text, m) for p in parts]
@@ -382,18 +493,27 @@ class _InvoiceGenerator:
                 halved = m.firm_id in ("harlow", "lindqvist") and r.random() < 0.7
                 if halved:
                     text += " (billed at 50%)"
-                e = add_fee(tk, d, text, str(r.choice(["L330", "L450", "L160", "L110"])), "A111", self.hours(3.2), {"travel": True, "halved": halved})
+                e = add_fee(
+                    tk,
+                    d,
+                    text,
+                    str(r.choice(["L330", "L450", "L160", "L110"])),
+                    "A111",
+                    self.hours(3.2),
+                    {"travel": True, "halved": halved},
+                )
                 e["rate_factor"] = Decimal("0.5") if halved else Decimal("1")
             else:
-                pool = [a for a in atoms if (a.roles != "paralegal" or is_para) and (a.roles == "any" or not is_para or a.roles == "paralegal")]
+                pool = [
+                    a for a in atoms if (a.roles != "paralegal" or is_para) and (a.roles == "any" or not is_para or a.roles == "paralegal")
+                ]
                 if is_para:
                     pool = [a for a in N.PROFESSIONAL if a.roles in ("any", "paralegal")] or pool
                 a = pool[int(r.integers(len(pool)))]
                 if ("deposition" in a.tags or "hearing" in a.tags) and not is_para:
                     self._event(entries, m, a, d, tk, lawyers, add_fee)
                     continue
-                add_fee(tk, d, self.fill(a.text, m), a.task, a.activity, self.hours(a.hours),
-                        {"research": "research" in a.tags})
+                add_fee(tk, d, self.fill(a.text, m), a.task, a.activity, self.hours(a.hours), {"research": "research" in a.tags})
 
         # internal conferences: both lawyers bill the same meeting
         for _ in range(int(r.poisson(fc["internal_meetings"]))):
@@ -405,7 +525,7 @@ class _InvoiceGenerator:
             tmpl = N.INTERNAL_CONFERENCE[int(r.integers(len(N.INTERNAL_CONFERENCE)))]
             units = Decimal(str(round(float(r.uniform(0.3, 1.2)), 1)))
             task = str(r.choice(["L120", "L310", "L240", "L330"]))
-            meeting = f"M{self.counter}-{int(r.integers(1e6))}"
+            meeting = f"M{self.counter}-{int(r.integers(1_000_000))}"
             for me, other in ((a_tk, b_tk), (b_tk, a_tk)):
                 text = self.fill(tmpl, m, colleague=self.name_form(other, m.firm_id))
                 add_fee(me, d, text, task, "A105", units, {"internal_conference": meeting, "with": other.id})
@@ -450,34 +570,76 @@ class _InvoiceGenerator:
                     f["unauthorized"] = True
 
         # dates sorted like a timekeeping export
-        entries.sort(key=lambda e: (e["date"], e.get("tk").id if e.get("tk") else "~"))
+        entries.sort(key=lambda e: (e["date"], e["tk"].id if e.get("tk") else "~"))
         lines: list[LineItem] = []
         facts_by_line: dict[str, dict[str, Any]] = {}
         for n, e in enumerate(entries, start=1):
             ln = str(n)
             if e["type"] == "E":
                 total = money(e["unit_cost"] * e["units"])
-                lines.append(LineItem(line_no=ln, type=LineType.EXPENSE, date=e["date"], units=e["units"], unit_cost=e["unit_cost"],
-                                      total=total, expense_code=e["code"], description=e["text"]))
+                lines.append(
+                    LineItem(
+                        line_no=ln,
+                        type=LineType.EXPENSE,
+                        date=e["date"],
+                        units=e["units"],
+                        unit_cost=e["unit_cost"],
+                        total=total,
+                        expense_code=e["code"],
+                        description=e["text"],
+                    )
+                )
             else:
                 tk = e["tk"]
                 rate = self.billed_rate(m.tenant, m.firm_id, tk, e["date"]) * e.get("rate_factor", Decimal("1"))
                 rate = money(rate)
                 total = money(rate * e["units"])
                 text = self.style(e["text"], m.firm_id, e["date"], e["task"], e["activity"])
-                lines.append(LineItem(line_no=ln, type=LineType.FEE, date=e["date"], units=e["units"], unit_cost=rate, total=total,
-                                      task_code=e["task"], activity_code=e["activity"], timekeeper_id=tk.id, timekeeper_name=tk.name,
-                                      timekeeper_class=tk.classification, description=text))
+                lines.append(
+                    LineItem(
+                        line_no=ln,
+                        type=LineType.FEE,
+                        date=e["date"],
+                        units=e["units"],
+                        unit_cost=rate,
+                        total=total,
+                        task_code=e["task"],
+                        activity_code=e["activity"],
+                        timekeeper_id=tk.id,
+                        timekeeper_name=tk.name,
+                        timekeeper_class=tk.classification,
+                        description=text,
+                    )
+                )
             facts_by_line[ln] = e
         self.counter += 1
         total = money(sum((li.total for li in lines), Decimal("0")))
         delay = int(r.integers(70, 130)) if r.random() < self.ev["late_invoice"] else int(r.integers(5, 28))
         number = f"{m.firm_id[:3].upper()}-{start:%y%m}-{self.counter:04d}"
-        inv = Invoice(number=number, date=end + timedelta(days=delay), client_id=tenant.client_id, law_firm_id=m.firm_id,
-                      law_firm_matter_id=m.law_firm_matter_id, client_matter_id=m.id, total=total, period_start=start,
-                      period_end=end, description=f"Professional services rendered {start:%B %Y}", lines=tuple(lines))
-        line_truth, inv_truth = T.score_invoice(inv, m, self.firms[m.firm_id], facts_by_line, self.params_at, self.approved_rate,
-                                                spent, month_index=mi, history_months=self.cfg["history_months"])
+        inv = Invoice(
+            number=number,
+            date=end + timedelta(days=delay),
+            client_id=tenant.client_id,
+            law_firm_id=m.firm_id,
+            law_firm_matter_id=m.law_firm_matter_id,
+            client_matter_id=m.id,
+            total=total,
+            period_start=start,
+            period_end=end,
+            description=f"Professional services rendered {start:%B %Y}",
+            lines=tuple(lines),
+        )
+        line_truth, inv_truth = T.score_invoice(
+            inv,
+            m,
+            self.firms[m.firm_id],
+            facts_by_line,
+            self.params_at,
+            self.approved_rate,
+            spent,
+            month_index=mi,
+            history_months=self.cfg["history_months"],
+        )
         return inv, line_truth, inv_truth
 
     def _expense(self, entries: list[dict[str, Any]], m: Matter, fc: dict[str, Any], d: date) -> None:
@@ -486,17 +648,43 @@ class _InvoiceGenerator:
         if roll < 0.35:
             pages = Decimal(int(r.integers(40, 900)))
             cost = Decimal(str(fc["copy_cost"]))
-            entries.append({"type": "E", "date": d, "code": "E101", "units": pages, "unit_cost": cost,
-                            "text": f"Photocopies ({pages} pages)", "facts": {"expense": "E101"}})
+            entries.append(
+                {
+                    "type": "E",
+                    "date": d,
+                    "code": "E101",
+                    "units": pages,
+                    "unit_cost": cost,
+                    "text": f"Photocopies ({pages} pages)",
+                    "facts": {"expense": "E101"},
+                }
+            )
         elif roll < 0.35 + fc["meals"] * 8:
-            entries.append({"type": "E", "date": d, "code": "E111", "units": Decimal("1"),
-                            "unit_cost": money(r.uniform(18, 140)), "text": str(r.choice(["Working lunch during document review",
-                                                                                          "Dinner while travelling for deposition",
-                                                                                          "Meals - trial team"])),
-                            "facts": {"expense": "E111"}})
+            entries.append(
+                {
+                    "type": "E",
+                    "date": d,
+                    "code": "E111",
+                    "units": Decimal("1"),
+                    "unit_cost": money(r.uniform(18, 140)),
+                    "text": str(
+                        r.choice(["Working lunch during document review", "Dinner while travelling for deposition", "Meals - trial team"])
+                    ),
+                    "facts": {"expense": "E111"},
+                }
+            )
         elif roll < 0.5 and r.random() < fc["word_processing"] * 15:
-            entries.append({"type": "E", "date": d, "code": "E103", "units": Decimal("1"), "unit_cost": money(r.uniform(40, 200)),
-                            "text": "Word processing charges", "facts": {"expense": "E103"}})
+            entries.append(
+                {
+                    "type": "E",
+                    "date": d,
+                    "code": "E103",
+                    "units": Decimal("1"),
+                    "unit_cost": money(r.uniform(40, 200)),
+                    "text": "Word processing charges",
+                    "facts": {"expense": "E103"},
+                }
+            )
         else:
             code, text, lo, hi = [
                 ("E110", "Airfare and hotel for deposition travel", 180, 950),
@@ -508,11 +696,21 @@ class _InvoiceGenerator:
                 ("E104", "Facsimile charges", 5, 30),
                 ("E118", "E-discovery hosting, monthly", 400, 2500),
             ][int(r.integers(8))]
-            entries.append({"type": "E", "date": d, "code": code, "units": Decimal("1"), "unit_cost": money(r.uniform(lo, hi)),
-                            "text": text, "facts": {"expense": code}})
+            entries.append(
+                {
+                    "type": "E",
+                    "date": d,
+                    "code": code,
+                    "units": Decimal("1"),
+                    "unit_cost": money(r.uniform(lo, hi)),
+                    "text": text,
+                    "facts": {"expense": code},
+                }
+            )
 
-    def _event(self, entries: list[dict[str, Any]], m: Matter, a: N.Atom, d: date, tk: Timekeeper, lawyers: list[Timekeeper],
-               add_fee: Any) -> None:
+    def _event(
+        self, entries: list[dict[str, Any]], m: Matter, a: N.Atom, d: date, tk: Timekeeper, lawyers: list[Timekeeper], add_fee: Any
+    ) -> None:
         """A deposition or hearing: usually one or two lawyers attend, sometimes one more than usual."""
         r = self.rng
         n = 1 + int(r.random() < 0.45)
@@ -522,7 +720,7 @@ class _InvoiceGenerator:
         attendees = [tk] + [others[int(i)] for i in r.choice(len(others), size=min(len(others), n - 1), replace=False)] if others else [tk]
         text = self.fill(a.text, m)
         hours = self.hours(a.hours)
-        event = f"E{self.counter}-{int(r.integers(1e6))}"
+        event = f"E{self.counter}-{int(r.integers(1_000_000))}"
         kind = "deposition" if "deposition" in a.tags else "hearing"
         for at in attendees:
             add_fee(at, d, text, a.task, a.activity, hours, {"event": event, "event_kind": kind})
@@ -542,10 +740,21 @@ class _InvoiceGenerator:
             if not flags and r.random() < rv["false_flag"]:
                 flags.append(str(r.choice(judge)))
             li = inv.line(lt["line_no"])
-            out.append({"invoice": inv.number, "tenant": lt["tenant"], "line_no": lt["line_no"], "date": li.date.isoformat(),
-                        "description": li.description, "task_code": li.task_code, "activity_code": li.activity_code,
-                        "timekeeper_class": li.timekeeper_class, "type": li.type.value, "units": str(li.units),
-                        "flags": sorted(set(flags))})
+            out.append(
+                {
+                    "invoice": inv.number,
+                    "tenant": lt["tenant"],
+                    "line_no": lt["line_no"],
+                    "date": li.date.isoformat(),
+                    "description": li.description,
+                    "task_code": li.task_code,
+                    "activity_code": li.activity_code,
+                    "timekeeper_class": li.timekeeper_class,
+                    "type": li.type.value,
+                    "units": str(li.units),
+                    "flags": sorted(set(flags)),
+                }
+            )
         return out
 
 

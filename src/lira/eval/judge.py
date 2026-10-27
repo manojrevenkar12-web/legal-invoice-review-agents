@@ -25,27 +25,44 @@ from lira.llm.router import ModelRouter, Unavailable
 from lira.llm.schemas import RECORD_VERDICT, Verdict
 
 CRITERIA = ("supported", "correct", "specific", "professional", "overall")
-PADDING = (" We remain committed to a constructive working relationship and appreciate the effort your team puts into every"
-           " matter, and we hope this note is received in the spirit in which it is intended.")
+PADDING = (
+    " We remain committed to a constructive working relationship and appreciate the effort your team puts into every"
+    " matter, and we hope this note is received in the spirit in which it is intended."
+)
 
 
 def sample_items(runs: list[Any], clause_text: dict[tuple[str, str], str], n: int = 60, seed: int = 5) -> list[dict[str, Any]]:
     """Stratified by finding kind and source; one item per finding; deterministic for a seed."""
     pool: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    seen: set[str] = set()
     for run in runs:
         inv = run.invoice
         for f in run.findings:
-            if f.status != "proposed" or not f.line_no or f.kind.value not in (
-                    "block_billing", "vague_description", "clerical_work", "internal_conference", "travel_time"):
+            if (
+                f.id in seen
+                or f.status != "proposed"
+                or not f.line_no
+                or f.kind.value not in ("block_billing", "vague_description", "clerical_work", "internal_conference", "travel_time")
+            ):
                 continue
+            seen.add(f.id)
             li = inv.line(f.line_no)
             tk = f.clause.clause_id if f.clause else ""
-            pool.setdefault((f.kind.value, f.source), []).append({
-                "id": hashlib.sha1(f.id.encode()).hexdigest()[:10], "finding_id": f.id, "kind": f.kind.value, "action": f.action,
-                "clause_id": tk, "clause_text": clause_text.get((inv.number, f.id), f.clause.quote if f.clause else ""),
-                "line_no": li.line_no, "timekeeper_role": li.timekeeper_class, "hours": str(li.units), "description": li.description,
-                "explanation": f.explanation,
-            })
+            pool.setdefault((f.kind.value, f.source), []).append(
+                {
+                    "id": hashlib.sha1(f.id.encode()).hexdigest()[:10],
+                    "finding_id": f.id,
+                    "kind": f.kind.value,
+                    "action": f.action,
+                    "clause_id": tk,
+                    "clause_text": clause_text.get((inv.number, f.id), f.clause.quote if f.clause else ""),
+                    "line_no": li.line_no,
+                    "timekeeper_role": li.timekeeper_class,
+                    "hours": str(li.units),
+                    "description": li.description,
+                    "explanation": f.explanation,
+                }
+            )
     rng = random.Random(seed)
     strata = sorted(pool)
     out: list[dict[str, Any]] = []
@@ -59,11 +76,27 @@ def sample_items(runs: list[Any], clause_text: dict[tuple[str, str], str], n: in
 
 async def judge_item(router: ModelRouter, item: dict[str, Any], explanation: str | None = None) -> dict[str, str] | None:
     prompt = load("judge_finding")
-    user = prompt.render_user(clause_id=item["clause_id"], clause_text=item["clause_text"], line_no=item["line_no"],
-                              timekeeper_role=item["timekeeper_role"], hours=item["hours"], description=item["description"],
-                              finding_kind=item["kind"], action=item["action"], explanation=explanation or item["explanation"])
-    req = ModelRequest(task="judge_finding", system=prompt.system, messages=[Message("user", [Block.t(user)])], tools=[RECORD_VERDICT],
-                       tool_choice="record_verdict", max_tokens=600, prompt_id=prompt.id, prompt_version=prompt.version)
+    user = prompt.render_user(
+        clause_id=item["clause_id"],
+        clause_text=item["clause_text"],
+        line_no=item["line_no"],
+        timekeeper_role=item["timekeeper_role"],
+        hours=item["hours"],
+        description=item["description"],
+        finding_kind=item["kind"],
+        action=item["action"],
+        explanation=explanation or item["explanation"],
+    )
+    req = ModelRequest(
+        task="judge_finding",
+        system=prompt.system,
+        messages=[Message("user", [Block.t(user)])],
+        tools=[RECORD_VERDICT],
+        tool_choice="record_verdict",
+        max_tokens=600,
+        prompt_id=prompt.id,
+        prompt_version=prompt.version,
+    )
 
     def parse(r: ModelResponse) -> Verdict:
         return Verdict.model_validate(r.tool_input("record_verdict"))
@@ -86,9 +119,14 @@ def kappa(a: list[str], b: list[str]) -> float | None:
     return round((po - pe) / (1 - pe), 4) if pe < 1 else (1.0 if po == 1 else 0.0)
 
 
-def agreement(items: list[dict[str, Any]], a: dict[str, dict[str, str]], b: dict[str, dict[str, str]],
-              judge: dict[str, dict[str, str]], adjudicated: dict[str, dict[str, str]] | None = None) -> dict[str, Any]:
-    ids = [i["id"] for i in items if i["id"] in a and i["id"] in b]
+def agreement(
+    items: list[dict[str, Any]],
+    a: dict[str, dict[str, str]],
+    b: dict[str, dict[str, str]],
+    judge: dict[str, dict[str, str]],
+    adjudicated: dict[str, dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    ids = list(dict.fromkeys(i["id"] for i in items if i["id"] in a and i["id"] in b))
     out: dict[str, Any] = {"items": len(ids)}
     for c in CRITERIA:
         la, lb = [a[i][c] for i in ids], [b[i][c] for i in ids]

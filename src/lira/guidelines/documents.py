@@ -19,7 +19,9 @@ _NUMBERED = re.compile(
     re.IGNORECASE,
 )
 _LETTERED = re.compile(r"^\(?(?P<id>[a-z]|[ivx]{1,4})\)\s+(?P<rest>\S.*)$")
-_HEADING_NUMBER = re.compile(r"^(?:§\s*|section\s+|part\s+|article\s+)?(?P<id>\d{1,2}(?:\.\d{1,2}){0,2}|[A-Z])[.):]?\s+(?P<title>.+)$", re.IGNORECASE)
+_HEADING_NUMBER = re.compile(
+    r"^(?:§\s*|section\s+|part\s+|article\s+)?(?P<id>\d{1,2}(?:\.\d{1,2}){0,2}|[A-Z])[.):]?\s+(?P<title>.+)$", re.IGNORECASE
+)
 
 
 @dataclass(frozen=True)

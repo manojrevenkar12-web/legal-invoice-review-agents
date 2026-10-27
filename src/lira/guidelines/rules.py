@@ -174,12 +174,47 @@ _WORDS = {
     Decimal("0.25"): ["0.25", ".25", "quarter", "15 minutes", "fifteen minutes"],
     Decimal("0.5"): ["0.5", "50%", "50 %", "50 percent", "fifty percent", "half", "one-half"],
 }
-_NOT_BILLABLE = ["not bill", "not be bill", "non-billable", "nonbillable", "not billable", "not pay", "not be paid",
-                 "will not be compensated", "no charge", "not chargeable", "not reimburs", "not compensable", "shall not be charged",
-                 "not be charged", "may not be charged", "not accept", "unbillable"]
-_NUMBER_WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine",
-                 10: "ten", 11: "eleven", 12: "twelve", 14: "fourteen", 15: "fifteen", 20: "twenty", 30: "thirty",
-                 45: "forty-five", 60: "sixty", 90: "ninety", 120: "one hundred twenty"}
+_NOT_BILLABLE = [
+    "not bill",
+    "not be bill",
+    "non-billable",
+    "nonbillable",
+    "not billable",
+    "not pay",
+    "not be paid",
+    "will not be compensated",
+    "no charge",
+    "not chargeable",
+    "not reimburs",
+    "not compensable",
+    "shall not be charged",
+    "not be charged",
+    "may not be charged",
+    "not accept",
+    "unbillable",
+]
+_NUMBER_WORDS = {
+    1: "one",
+    2: "two",
+    3: "three",
+    4: "four",
+    5: "five",
+    6: "six",
+    7: "seven",
+    8: "eight",
+    9: "nine",
+    10: "ten",
+    11: "eleven",
+    12: "twelve",
+    14: "fourteen",
+    15: "fifteen",
+    20: "twenty",
+    30: "thirty",
+    45: "forty-five",
+    60: "sixty",
+    90: "ninety",
+    120: "one hundred twenty",
+}
 
 
 def _norm(s: str) -> str:
@@ -230,9 +265,7 @@ def verify(rule: Rule, clause_text: str) -> list[str]:
             if not _has_number(q, h):
                 problems.append(f"{h} is not stated in the quote")
         case TravelTime(rate_factor=f):
-            ok = any(w in _norm(q) for w in _NOT_BILLABLE) if f == 0 else _has_number(q, f) or (
-                f == Decimal("0.5") and "half" in _norm(q)
-            )
+            ok = any(w in _norm(q) for w in _NOT_BILLABLE) if f == 0 else _has_number(q, f) or (f == Decimal("0.5") and "half" in _norm(q))
             if not ok:
                 problems.append(f"travel rate factor {f} is not stated in the quote")
         case BlockBilling(action="reduce", reduce_factor=f):
@@ -249,7 +282,11 @@ def verify(rule: Rule, clause_text: str) -> list[str]:
                     problems.append(f"expense {c} ({name}) is not named in the quote")
         case ExpenseUnitCap(code=c, max_unit_cost=m):
             name = EXPENSE_CODES.get(c, "")
-            if c.lower() not in _norm(q) and _norm(name) not in _norm(q) and not (c == "E101" and ("cop" in _norm(q) or "photocop" in _norm(q))):
+            if (
+                c.lower() not in _norm(q)
+                and _norm(name) not in _norm(q)
+                and not (c == "E101" and ("cop" in _norm(q) or "photocop" in _norm(q)))
+            ):
                 problems.append(f"expense {c} is not named in the quote")
             if not _has_number(q, m):
                 problems.append(f"cap {m} is not stated in the quote")

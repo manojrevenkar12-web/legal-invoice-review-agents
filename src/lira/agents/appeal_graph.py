@@ -25,7 +25,9 @@ from lira.nlp.models import NlpModels
 
 
 class AppealState(TypedDict, total=False):
-    appeal: dict[str, Any]  # {message, finding:{id, kind, line_no, adjustment, rationale, clause:{clause_id, quote}}, description, firm_name, tenant, tenant_name, currency}
+    appeal: dict[
+        str, Any
+    ]  # {message, finding:{id, kind, line_no, adjustment, rationale, clause:{clause_id, quote}}, description, firm_name, tenant, tenant_name, currency}
     intent: str
     intent_confidence: float
     recommendation: dict[str, Any] | None
@@ -65,8 +67,10 @@ def build_appeal_graph(deps: AppealDeps, checkpointer: Any = None) -> Any:
     def answer(state: AppealState) -> dict[str, Any]:
         f = state["appeal"]["finding"]
         c = f.get("clause") or {}
-        text = (f"The adjustment on line {f['line_no']} applies clause {c.get('clause_id')} of the billing guidelines: "
-                f"\"{c.get('quote', '')}\". {f.get('rationale', '')}").strip()
+        text = (
+            f"The adjustment on line {f['line_no']} applies clause {c.get('clause_id')} of the billing guidelines: "
+            f'"{c.get("quote", "")}". {f.get("rationale", "")}'
+        ).strip()
         return {"outcome": "answered", "reply": text}
 
     async def assess(state: AppealState) -> dict[str, Any]:
@@ -74,13 +78,30 @@ def build_appeal_graph(deps: AppealDeps, checkpointer: Any = None) -> Any:
         f = a["finding"]
         c = f.get("clause") or {}
         prompt = load("appeal_review")
-        user = prompt.render_user(tenant_name=a["tenant_name"], clause_id=c.get("clause_id", ""), clause_text=c.get("quote", ""),
-                                  line_no=f["line_no"], description=a["description"], finding_kind=f["kind"],
-                                  adjustment=f["adjustment"], currency=a["currency"], rationale=f.get("rationale", ""),
-                                  firm_name=a["firm_name"], appeal=a["message"])
-        req = ModelRequest(task="appeal_review", system=prompt.system, messages=[Message("user", [Block.t(user)])],
-                           tools=[RECORD_RECOMMENDATION], tool_choice="record_recommendation", max_tokens=800,
-                           prompt_id=prompt.id, prompt_version=prompt.version, tenant=a["tenant"])
+        user = prompt.render_user(
+            tenant_name=a["tenant_name"],
+            clause_id=c.get("clause_id", ""),
+            clause_text=c.get("quote", ""),
+            line_no=f["line_no"],
+            description=a["description"],
+            finding_kind=f["kind"],
+            adjustment=f["adjustment"],
+            currency=a["currency"],
+            rationale=f.get("rationale", ""),
+            firm_name=a["firm_name"],
+            appeal=a["message"],
+        )
+        req = ModelRequest(
+            task="appeal_review",
+            system=prompt.system,
+            messages=[Message("user", [Block.t(user)])],
+            tools=[RECORD_RECOMMENDATION],
+            tool_choice="record_recommendation",
+            max_tokens=800,
+            prompt_id=prompt.id,
+            prompt_version=prompt.version,
+            tenant=a["tenant"],
+        )
 
         def parse(r: ModelResponse) -> Recommendation:
             return Recommendation.model_validate(r.tool_input("record_recommendation"))
@@ -101,8 +122,13 @@ def build_appeal_graph(deps: AppealDeps, checkpointer: Any = None) -> Any:
     def decide(state: AppealState) -> dict[str, Any]:
         if deps.human == "skip":
             return {"outcome": "awaiting_decision"}
-        decision = interrupt({"finding": state["appeal"]["finding"]["id"], "recommendation": state.get("recommendation"),
-                              "problems": state.get("problems", [])})
+        decision = interrupt(
+            {
+                "finding": state["appeal"]["finding"]["id"],
+                "recommendation": state.get("recommendation"),
+                "problems": state.get("problems", []),
+            }
+        )
         return {"decision": decision, "outcome": {"uphold": "upheld", "reverse": "reversed", "partial": "partial"}[decision["decision"]]}
 
     g = StateGraph(AppealState)
