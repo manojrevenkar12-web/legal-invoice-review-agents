@@ -48,7 +48,20 @@ async def open_pool(url: str, min_size: int = 1, max_size: int = 10, extra: dict
     return pool
 
 
+class UnsafeRole(RuntimeError):
+    """The service connected as a role that ignores row-level security."""
+
+
+async def check_role(pool: Pool) -> None:
+    """Superusers and BYPASSRLS roles skip every row-level security policy, even FORCE'd ones. Refuse to serve."""
+    async with pool.connection() as conn:
+        row = await (await conn.execute("SELECT rolname, rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user")).fetchone()
+    if row and (row["rolsuper"] or row["rolbypassrls"]):
+        raise UnsafeRole(f"role {row['rolname']} bypasses row-level security; connect as an ordinary role")
+
+
 async def migrate(pool: Pool) -> list[str]:
+    await check_role(pool)
     applied: list[str] = []
     files = sorted((f for f in resources.files("lira.service.migrations").iterdir() if f.name.endswith(".sql")), key=lambda f: f.name)
     async with pool.connection() as conn:

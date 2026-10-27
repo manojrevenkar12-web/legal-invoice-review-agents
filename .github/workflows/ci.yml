@@ -23,12 +23,10 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: lira
-          POSTGRES_PASSWORD: lira
-          POSTGRES_DB: lira_test
+          POSTGRES_PASSWORD: postgres
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U lira" --health-interval 5s --health-timeout 5s --health-retries 10
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       LIRA_TEST_DATABASE_URL: postgresql://lira:lira@localhost:5432/lira_test
     steps:
@@ -44,6 +42,12 @@ jobs:
         run: |
           python -m venv .venv
           .venv/bin/pip install -e ".[dev,infra]" "$SPACY_MODEL"
+      - name: Database role that row-level security applies to (not a superuser)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -c "CREATE ROLE lira LOGIN PASSWORD 'lira' NOSUPERUSER NOBYPASSRLS"
+          psql -h localhost -U postgres -c "CREATE DATABASE lira_test OWNER lira"
       - name: Ruff
         run: |
           .venv/bin/ruff check src tests infra
@@ -90,12 +94,10 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: lira
-          POSTGRES_PASSWORD: lira
-          POSTGRES_DB: lira
+          POSTGRES_PASSWORD: postgres
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U lira" --health-interval 5s --health-timeout 5s --health-retries 10
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       LIRA_DATABASE_URL: postgresql://lira:lira@localhost:5432/lira
     steps:
@@ -113,6 +115,12 @@ jobs:
         run: |
           python -m venv .venv
           .venv/bin/pip install -e ".[dev]" "$SPACY_MODEL"
+      - name: Database role that row-level security applies to (not a superuser)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -c "CREATE ROLE lira LOGIN PASSWORD 'lira' NOSUPERUSER NOBYPASSRLS"
+          psql -h localhost -U postgres -c "CREATE DATABASE lira OWNER lira"
       - name: Simulate, train, compile, evaluate, gate
         run: .venv/bin/lira run
       - name: Held-out sets are unchanged since their first runs

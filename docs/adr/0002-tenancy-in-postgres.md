@@ -10,4 +10,6 @@ The application sets it per transaction (`tenant_tx`); a connection without it s
 tenant as a required argument and filters before ranking. Decisions and audit are append-only by trigger.
 
 **Consequences.** Isolation holds even for a query written carelessly, and is tested by writing as one tenant
-and reading as another. Work that is not tenant data (jobs, key lookup) uses an explicit `system_tx`.
+and reading as another. Work that is not tenant data (jobs, key lookup) uses an explicit `system_tx`. Superusers and
+`BYPASSRLS` roles skip every policy, so the service refuses to start as one (`db.check_role`); CI runs the
+tests as an ordinary role for the same reason.

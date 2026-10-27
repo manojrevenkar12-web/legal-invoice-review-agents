@@ -174,3 +174,25 @@ async def test_legal_ops_uploads_a_draft_that_is_not_used_until_approved(app, ct
             )
         ).json()
         assert a["verified"] is False or "30" in a["answer"]
+
+
+async def test_the_service_refuses_a_role_that_bypasses_row_level_security():
+    from contextlib import asynccontextmanager
+
+    from lira.service.db import UnsafeRole, check_role
+
+    class Result:
+        async def fetchone(self):
+            return {"rolname": "postgres", "rolsuper": True, "rolbypassrls": False}
+
+    class Conn:
+        async def execute(self, *_):
+            return Result()
+
+    class Pool:
+        @asynccontextmanager
+        async def connection(self):
+            yield Conn()
+
+    with pytest.raises(UnsafeRole):
+        await check_role(Pool())  # type: ignore[arg-type]
